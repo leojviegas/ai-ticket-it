@@ -18,8 +18,9 @@ La fuente de verdad del enunciado y el diagrama de clases tentativo se encuentra
 
 1. **Arquitectura**: Monolito modular dividido en `/backend` y `/frontend`.
 2. **Back-End (`/backend`)**:
-   - **Node.js + Express**.
-   - **Persistencia en memoria**: Todos los datos deben almacenarse en memoria (estructuras en memoria encapsuladas en repositorios con datos iniciales/seed para facilitar pruebas y demostración). No utilizar bases de datos externas que requieran instalación adicional.
+   - **Node.js + Express** con **ES Modules** (`"type": "module"`).
+   - **Persistencia en memoria**: Todos los datos deben almacenarse en memoria (estructuras en memoria encapsuladas en `src/repositories/` con datos iniciales en `data/seeders/` para facilitar pruebas y demostración). No utilizar bases de datos externas.
+   - **Testing y Mutation Testing**: Tests con **Jest** (`npm test`) y evaluación de mutaciones sobre `src/domain/entities/**/*.js` con **Stryker Mutator** (`@stryker-mutator/core` + `@stryker-mutator/jest-runner`, `npm run mutation`).
 3. **Front-End (`/frontend`)**:
    - **React Native** ejecutable de forma local en un dispositivo móvil físico o emulador.
 4. **Fidelidad al Modelo de Dominio**:

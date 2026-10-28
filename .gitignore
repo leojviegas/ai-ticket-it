@@ -35,6 +35,9 @@ Thumbs.db
 !.vscode/extensions.json
 .idea/
 
-# Testing & Coverage
+# Testing, Coverage & Stryker Mutation
 coverage/
+.stryker-tmp/
+reports/
+
 

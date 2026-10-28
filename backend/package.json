@@ -1,0 +1,36 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+    "mutation": "cross-env NODE_OPTIONS=--experimental-vm-modules stryker run"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^5.1.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/jest-runner": "^10.0.0",
+    "cross-env": "^10.1.0",
+    "jest": "^27.5.1"
+  },
+  "jest": {
+    "testPathIgnorePatterns": [
+      "<rootDir>/.stryker-tmp/"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/.stryker-tmp/"
+    ],
+    "setupFiles": [
+      "<rootDir>/tests/helpers/setupGlobals.js"
+    ]
+  }
+}
+

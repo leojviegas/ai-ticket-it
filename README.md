@@ -38,17 +38,22 @@ ai-ticket-it/
 │   ├── enunciado.md           # Enunciado oficial y diagrama de dominio en Mermaid
 │   ├── adr/                   # Architecture Decision Records (justificación técnica)
 │   └── ai-log/                # Registro de iteraciones, prompts y conclusiones de IA
-├── backend/                   # Módulo Back-End (Node.js + Express)
+├── backend/                   # Módulo Back-End (Node.js + Express + ES Modules)
 │   ├── AGENTS.md              # Reglas específicas del Back-End
+│   ├── package.json           # Scripts (start, dev, test con Jest, mutation con Stryker)
+│   ├── stryker.config.mjs     # Configuración de Mutation Testing sobre src/domain/entities
+│   ├── data/
+│   │   └── seeders/           # Seeders en memoria (catálogos y datos de demo)
 │   ├── src/
 │   │   ├── config/            # Configuración del servidor
-│   │   ├── controllers/       # Controladores HTTP
-│   │   ├── domain/            # Entidades de dominio y máquinas de estado
-│   │   ├── middlewares/       # Validaciones, manejo de errores y contexto
-│   │   ├── repositories/      # Persistencia en memoria y datos semilla (seed)
+│   │   ├── controllers/       # Controladores HTTP y ControllerError
+│   │   ├── domain/            # entities/, enums/ y errors/ (DomainError)
+│   │   ├── middlewares/       # errorHandler, notFoundHandler y validaciones
+│   │   ├── repositories/      # Persistencia en memoria y RepositoryError
 │   │   ├── routes/            # Definición de rutas REST
-│   │   └── services/          # Lógica de aplicación / casos de uso
-│   └── tests/                 # Pruebas unitarias e integración
+│   │   ├── schemas/           # Validaciones con Zod
+│   │   └── services/          # Lógica de aplicación y ServiceError
+│   └── tests/                 # Tests con Jest (domain, repositories, services, controllers, etc.)
 └── frontend/                  # Módulo Front-End (React Native)
     ├── AGENTS.md              # Reglas específicas del Front-End
     └── src/
