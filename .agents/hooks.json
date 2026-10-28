@@ -1,0 +1,13 @@
+{
+  "spec-check-reminder": {
+    "enabled": false,
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./hooks/spec-reminder.js",
+        "timeout": 5
+      }
+    ]
+  }
+}
+

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+dist/
+web-build/
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Logs & Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# Testing & Coverage
+coverage/
+
