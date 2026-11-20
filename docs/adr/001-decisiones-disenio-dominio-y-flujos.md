@@ -1,4 +1,4 @@
-# ADR 001: Decisiones de Diseño sobre Grises del Enunciado y Modelo de Dominio
+# ADR 001: Decisiones de Diseño sobre el Modelo de Dominio y Flujos
 
 - **Estado**: Aceptado
 - **Fecha**: 2026-10-28
@@ -7,65 +7,41 @@
 
 ## Contexto
 
-El enunciado de **AI Ticket It** provee un **Diagrama Tentativo** de dominio y 12 Casos de Uso funcionales. Sin embargo, como en todo problema de diseño de software, existen aspectos ("grises") no explicitados en el diagrama conceptual que deben definirse con precisión antes de escribir las especificaciones (`specs/`) y los tests de mutación con Stryker.
+El enunciado de **AI Ticket It** provee un **Diagrama Tentativo** de dominio y 12 Casos de Uso funcionales. Este documento registra las decisiones de diseño acordadas para los puntos abiertos del enunciado antes de la implementación.
 
 ---
 
 ## Decisiones Adoptadas
 
 ### 1. Identificadores Únicos (`id`) Autoincrementales
-- **Problema**: El diagrama conceptual omite los atributos `id` de las entidades.
-- **Decisión (Definida por el usuario)**: Todas las entidades utilizarán un **`id` numérico autoincremental normal (`1, 2, 3...`)** en lugar de UUIDs, facilitando las pruebas manuales, los tests unitarios y la depuración durante el desarrollo.
+- **Decisión**: Todas las entidades utilizan un **`id` numérico entero autoincremental normal (`1, 2, 3...`)**, facilitando las pruebas manuales, los tests unitarios en Jest y la depuración durante el desarrollo.
 
-### 2. Modelo de `Usuario` y Roles (Comprador / Organizador)
-- **Problema**: El diagrama define una única clase `Usuario` (`nombre`, `apellido`, `favoritos: Evento[]`), mientras que los casos de uso distinguen acciones de **Comprador** y **Organizador**. Además, no se pide un sistema de autenticación con contraseñas o servidores externos.
+### 2. Interfaz Única Unificada para `Usuario` (Estilo YouTube / Studio)
+- **Contexto**: En el diagrama existe una única clase `Usuario` (`nombre`, `apellido`, `favoritos: Evento[]`). Cualquier usuario de la plataforma puede tanto asistir a eventos comprando entradas como publicar y organizar sus propios eventos.
 - **Decisión**:
-  - Se respeta la única clase `Usuario` del diagrama. Un usuario es `organizador` de los eventos que crea (`evento.organizador`) y `comprador` de las compras que realiza (`compra.comprador`).
-  - En el Front-End (React Native) se incluirá un **Selector Rápido de Usuario / Rol (Comprador ↔ Organizador)** alimentado por los usuarios semilla del Back-End. Esto permite demostrar en vivo ambos roles (ej. enviar un mensaje como comprador y responderlo inmediatamente como organizador) de forma fluida durante el video de entrega de 5 a 10 minutos.
+  - Se diseña **una única vista/experiencia unificada para todos los usuarios**, donde el usuario puede explorar eventos, gestionar sus compras/favoritos y además acceder a una sección dedicada de **Gestión / Estudio de Eventos** (al estilo *YouTube / YouTube Studio*) para publicar eventos propios y administrar las ventas, estados y consultas de los eventos que organiza.
 
-### 3. Máquina de Estados de `Compra`, Reembolso y `CambioEstadoCompra`
-- **Problema**:
-  - Existen 5 estados en `EstadoCompra`: `PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA`, `REEMBOLSADA`.
-  - Los Casos de Uso 7 y 8 establecen que el comprador puede cancelar una compra para obtener el reembolso siempre que **no se encuentre en estado `UTILIZADA`** y **el evento aún no se haya realizado**.
+### 3. Ciclo de Vida de `Compra` en Pasos Explícitos (`PENDIENTE` → `CONFIRMADA` y `CANCELADA` → `REEMBOLSADA`)
 - **Decisión**:
-  - Una compra se crea inicialmente en estado `CONFIRMADA` (o `PENDIENTE` si se especifica, permitiendo confirmarla) y registra su `CambioEstadoCompra` inicial.
-  - Método `actualizarEstado(nuevoEstado, quien = this.comprador, fechaHora = new Date())`:
-    - Mantiene compatibilidad total con la firma del diagrama `actualizarEstado(EstadoCompra)` si se invoca con un solo argumento.
-    - Valida las transiciones permitidas:
-      - `PENDIENTE` → `CONFIRMADA` | `CANCELADA`
-      - `CONFIRMADA` → `UTILIZADA` | `CANCELADA`
-      - `CANCELADA` → `REEMBOLSADA`
-    - Cualquier otra transición lanza `InvalidStateTransitionError` (HTTP 409).
-    - Registra un nuevo objeto `CambioEstadoCompra({ compra: this, estado: nuevoEstado, quien, fechaHora })` en el historial de la compra.
-  - **Flujo de Cancelación y Reembolso**:
-    - Cuando el comprador solicita cancelar una compra:
-      1. Se verifica que `compra.estado !== EstadoCompra.UTILIZADA` y no esté ya cancelada/reembolsada.
-      2. Se verifica que `compra.evento.fecha > fechaActual` (el evento aún no ocurrió).
-      3. Si la compra estaba `CONFIRMADA`, pasa por `CANCELADA` y se marca como `REEMBOLSADA` (registrando los `CambioEstadoCompra` correspondientes), y se restituye la `cantidad` de entradas al `cupo` del `TipoEntrada`. Si estaba `PENDIENTE`, pasa a `CANCELADA` y también libera el cupo reservado.
+  1. **Creación en `PENDIENTE`**: Al realizar una compra (validando y reservando el cupo disponible en `TipoEntrada`), la `Compra` nace en estado **`PENDIENTE`** (sin requerir pasarela de pago externa).
+  2. **Confirmación por el Organizador**: El organizador del evento confirma la compra, transicionándola de `PENDIENTE` a **`CONFIRMADA`**.
+  3. **Utilización de la Entrada**: Al asistir al evento, la compra pasa de `CONFIRMADA` a **`UTILIZADA`**, lo cual habilita al comprador a puntuar y comentar el evento (`Resenia`).
+  4. **Cancelación por el Comprador (CU 7 y CU 8)**:
+     - El comprador puede cancelar su compra siempre que **no se encuentre en estado `UTILIZADA`** (ni ya cancelada/reembolsada) y **el evento aún no se haya realizado** (`evento.fecha > ahora`).
+     - Al cancelar, la compra pasa a estado **`CANCELADA`** y **restituye inmediatamente el cupo** (`compra.cantidad`) al `TipoEntrada`.
+  5. **Reembolso por el Organizador**:
+     - Una vez que la compra está en estado **`CANCELADA`**, el organizador dispone de la acción/botón de reembolsar, y recién en ese momento la compra pasa al estado **`REEMBOLSADA`**.
+  - Todo cambio de estado mediante `actualizarEstado(nuevoEstado, quien, fechaHora)` registra su correspondiente instancia de `CambioEstadoCompra`.
 
-### 4. Gestión de Cupo en `TipoEntrada`
-- **Problema**: El Caso de Uso 12 exige comprar sin superar el cupo disponible y el Caso de Uso 2 exige que el organizador visualice cuántas entradas quedan disponibles de cada tipo.
+### 4. Relación entre la `Resenia` del Evento y el Puntaje del Organizador (CU 9, CU 10 y CU 11)
+- **Contexto**:
+  - En el diagrama, `Resenia` está asociada directamente a `Evento` (`comprador: Usuario`, `evento: Evento`, `detalle: String`, `puntuacion: Double`), porque los compradores califican **el evento puntual al que asistieron** una vez utilizada su entrada (CU 9).
+  - Sin embargo, cuando un comprador explora eventos futuros para comprar entradas, esos eventos aún no ocurrieron (y por ende todavía no tienen reseñas propias). Por eso el CU 10 pide *"que las reseñas de eventos anteriores se visualicen en los Eventos de cada organizador para conocer experiencias previas antes de comprar"* y el CU 11 pide ordenar eventos por *"puntaje del organizador"*.
 - **Decisión**:
-  - `TipoEntrada` implementa `hayCupoPara(cantidad)`: devuelve `true` si `Number.isInteger(cantidad) && cantidad > 0 && this.cupo >= cantidad`, y `false` en caso contrario.
-  - Además incorpora métodos de dominio `descontarCupo(cantidad)` y `restituirCupo(cantidad)` (que validan invariantes y lanzan `DomainValidationError` si no hay cupo suficiente o si la cantidad es inválida).
+  - Cada `Resenia` se crea sobre un **`Evento` específico** (con puntuación numérica de `1` a `5` y comentario escrito) una vez que la compra del usuario para ese evento está en estado `UTILIZADA`.
+  - El **puntaje del organizador** se calcula dinámicamente como el **promedio de las puntuaciones de todas las `Resenia` recibidas por los eventos organizados por ese `Usuario`**, y en la página de cualquier evento suyo se pueden consultar las reseñas de sus eventos anteriores.
 
-### 5. Cálculo de Días Restantes (Caso de Uso 1)
-- **Problema**: El comprador debe ver cuántos días faltan para el evento únicamente cuando la compra está en estado `CONFIRMADA`.
-- **Decisión**: `Compra` expone el método/cálculo `calcularDiasParaEvento(fechaReferencia = new Date())`:
-  - Si `this.estado !== EstadoCompra.CONFIRMADA`, retorna `null`.
-  - Si `this.estado === EstadoCompra.CONFIRMADA`, retorna `Math.max(0, Math.ceil((this.evento.fecha.getTime() - fechaReferencia.getTime()) / (1000 * 60 * 60 * 24)))`.
-
-### 6. Precio del Evento, Filtrado y Ordenamiento (Casos de Uso 3 y 11)
-- **Problema**: Un `Evento` posee múltiples `TipoEntrada[]` con distintos precios. El diagrama incluye `tuPrecioEstaEntre(min, max): Boolean` y el CU 11 solicita ordenar eventos por `precio`, `fecha` y `puntaje del organizador`.
+### 5. Precio del Evento para Ordenamiento y Filtrado (CU 11)
 - **Decisión**:
-  - `evento.tuPrecioEstaEntre(min, max)` retorna `true` si al menos un `TipoEntrada` del evento cumple `tipo.precio >= min && tipo.precio <= max`.
-  - Para ordenar por `precio`, se utiliza el menor precio (`precioMinimo`) entre los `tiposEntrada` del evento.
-  - Para ordenar por `puntaje del organizador`, se calcula el promedio de `puntuacion` de todas las `Resenia` cuyos eventos pertenecen a `evento.organizador` (si no posee reseñas, su puntaje promedio es `0`).
-
-### 7. Validación de `Resenia` (Casos de Uso 9 y 10)
-- **Problema**: Cuándo puede un comprador reseñar un evento y qué valores son válidos.
-- **Decisión**:
-  - `Resenia` valida en su constructor que `comprador` y `evento` existan, que `detalle` sea un string no vacío y que `puntuacion` sea un número en el rango `[1, 5]`.
-  - A nivel de regla de negocio (`ReseniaService`), solo se permite crear una reseña si el comprador tiene al menos una `Compra` para ese `Evento` en estado `UTILIZADA` y aún no ha dejado reseña para dicho evento.
-  - En la vista de un `Evento`, se exponen tanto las reseñas propias del evento como las reseñas de eventos anteriores del mismo `organizador` (CU 10).
-
+  - `evento.tuPrecioEstaEntre(min, max)` retorna `true` si al menos uno de sus `TipoEntrada` tiene `precio >= min && precio <= max`.
+  - Para ordenar eventos por **precio**, se utiliza el **precio mínimo** (`obtenerPrecioMinimo()`) entre los `tiposEntrada` del evento.

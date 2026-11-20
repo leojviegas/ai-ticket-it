@@ -10,40 +10,42 @@ Especificar las reglas de transición entre los valores de `EstadoCompra`, su im
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDIENTE : Reserva inicial
-    [*] --> CONFIRMADA : Compra directa confirmada
-    PENDIENTE --> CONFIRMADA : actualizarEstado(CONFIRMADA)
-    PENDIENTE --> CANCELADA : actualizarEstado(CANCELADA) [Libera cupo]
-    CONFIRMADA --> UTILIZADA : actualizarEstado(UTILIZADA) [Habilita Reseña]
-    CONFIRMADA --> CANCELADA : cancelar() [Si evento aún no ocurrió]
-    CANCELADA --> REEMBOLSADA : actualizarEstado(REEMBOLSADA) [Reembolso emitido]
+    [*] --> PENDIENTE : Comprador realiza la compra (descuenta cupo)
+    PENDIENTE --> CONFIRMADA : Organizador confirma la compra
+    PENDIENTE --> CANCELADA : Comprador cancela [Si evento aún no ocurrió] (restituye cupo)
+    CONFIRMADA --> UTILIZADA : Entrada utilizada en el evento [Habilita Reseña]
+    CONFIRMADA --> CANCELADA : Comprador cancela [Si evento aún no ocurrió] (restituye cupo)
+    CANCELADA --> REEMBOLSADA : Organizador emite el reembolso
 ```
 
 ---
 
 ## 3. Matriz de Transiciones Válidas en `Compra.actualizarEstado`
 
-| Estado Actual | Estados Destino Permitidos | Estados Destino Prohibidos (`InvalidStateTransitionError`) |
-| :--- | :--- | :--- |
-| **`PENDIENTE`** | `CONFIRMADA`, `CANCELADA` | `PENDIENTE`, `UTILIZADA`, `REEMBOLSADA` |
-| **`CONFIRMADA`** | `UTILIZADA`, `CANCELADA` | `PENDIENTE`, `CONFIRMADA`, `REEMBOLSADA` |
-| **`UTILIZADA`** | *(Estado terminal)* | Todos (`PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA`, `REEMBOLSADA`) |
-| **`CANCELADA`** | `REEMBOLSADA` | `PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA` |
-| **`REEMBOLSADA`** | *(Estado terminal)* | Todos (`PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA`, `REEMBOLSADA`) |
+| Estado Actual | Estados Destino Permitidos | Quién dispara la acción | Estados Destino Prohibidos (`InvalidStateTransitionError`) |
+| :--- | :--- | :--- | :--- |
+| **`PENDIENTE`** | `CONFIRMADA`, `CANCELADA` | Organizador (`CONFIRMADA`) / Comprador (`CANCELADA`) | `PENDIENTE`, `UTILIZADA`, `REEMBOLSADA` |
+| **`CONFIRMADA`** | `UTILIZADA`, `CANCELADA` | Organizador (`UTILIZADA`) / Comprador (`CANCELADA`) | `PENDIENTE`, `CONFIRMADA`, `REEMBOLSADA` |
+| **`UTILIZADA`** | *(Estado terminal)* | — | Todos (`PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA`, `REEMBOLSADA`) |
+| **`CANCELADA`** | `REEMBOLSADA` | Organizador (`REEMBOLSADA`) | `PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA` |
+| **`REEMBOLSADA`** | *(Estado terminal)* | — | Todos (`PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA`, `REEMBOLSADA`) |
 
 ---
 
 ## 4. Reglas de Negocio Asociadas a los Estados
 
-1. **Días faltantes para el evento (Caso de Uso 1)**:
+1. **Creación de la Compra (`PENDIENTE`)**:
+   - Toda nueva compra nace en `EstadoCompra.PENDIENTE`, reservando/descontando inmediatamente la `cantidad` del `cupo` disponible en `TipoEntrada` y registrando el `CambioEstadoCompra` inicial.
+2. **Confirmación de la Compra (`PENDIENTE` → `CONFIRMADA`)**:
+   - El organizador confirma la compra y pasa a `CONFIRMADA`.
+3. **Días faltantes para el evento (Caso de Uso 1)**:
    - Solo se informan cuando `compra.estado === EstadoCompra.CONFIRMADA`.
    - En estados `PENDIENTE`, `UTILIZADA`, `CANCELADA` o `REEMBOLSADA`, `calcularDiasParaEvento()` devuelve `null`.
-2. **Cancelación y Reembolso (Casos de Uso 7 y 8)**:
+4. **Cancelación por el Comprador (Casos de Uso 7 y 8 — `PENDIENTE`/`CONFIRMADA` → `CANCELADA`)**:
    - Condición 1: `compra.estado` NO puede ser `UTILIZADA` (ni estar ya `CANCELADA` o `REEMBOLSADA`). Si lo está, se rechaza con `InvalidStateTransitionError`.
    - Condición 2: La fecha del `Evento` debe ser estrictamente posterior a la fecha/hora actual (`evento.fecha > ahora`). Si el evento ya se realizó (`evento.fecha <= ahora`), se rechaza con `DomainValidationError("No se puede cancelar una compra de un evento que ya se realizó")`.
-   - Efecto:
-     - Si estaba `CONFIRMADA`: transiciona a `CANCELADA` y luego a `REEMBOLSADA`, registrando los `CambioEstadoCompra` y ejecutando `tipoEntrada.restituirCupo(compra.cantidad)`.
-     - Si estaba `PENDIENTE`: transiciona a `CANCELADA`, registrando el `CambioEstadoCompra` y ejecutando `tipoEntrada.restituirCupo(compra.cantidad)`.
-3. **Calificación / Reseña de Evento (Caso de Uso 9)**:
+   - Efecto: La compra pasa a estado **`CANCELADA`**, registra el `CambioEstadoCompra` y ejecuta `tipoEntrada.restituirCupo(compra.cantidad)`.
+5. **Reembolso por el Organizador (`CANCELADA` → `REEMBOLSADA`)**:
+   - Cuando una compra se encuentra en estado `CANCELADA`, el organizador puede reembolsarla mediante el botón correspondiente, pasando la compra a **`REEMBOLSADA`** y registrando el `CambioEstadoCompra`.
+6. **Calificación / Reseña de Evento (Caso de Uso 9)**:
    - Un comprador solo puede registrar una `Resenia` sobre un `Evento` si posee una `Compra` para dicho evento con `estado === EstadoCompra.UTILIZADA`.
-

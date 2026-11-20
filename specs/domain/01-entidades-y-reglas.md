@@ -142,7 +142,7 @@ export const EstadoCompra = Object.freeze({
   - `tipoEntrada: TipoEntrada`
   - `cantidad: Number (Int)`
   - `total: Number (Double)` (calculado como `tipoEntrada.precio * cantidad` si no se provee)
-  - `estado: EstadoCompra` (default `EstadoCompra.CONFIRMADA`)
+  - `estado: EstadoCompra` (default `EstadoCompra.PENDIENTE`)
   - `mensajes: Mensaje[]` (default `[]`)
   - `cambiosEstado: CambioEstadoCompra[]` (historial de trazabilidad)
 - **Invariantes de Constructor**:
@@ -155,7 +155,9 @@ export const EstadoCompra = Object.freeze({
     - Actualiza `this.estado = nuevoEstado` y agrega un nuevo `CambioEstadoCompra` a `this.cambiosEstado`.
   - **`cancelar(quien = this.comprador, fechaActual = new Date()): void`**:
     - Implementa los Casos de Uso 7 y 8: verifica que `this.estado !== EstadoCompra.UTILIZADA`, que no esté ya `CANCELADA`/`REEMBOLSADA`, y que `!this.evento.yaOcurrio(fechaActual)`.
-    - Transiciona a `CANCELADA` y, si correspondía a una compra `CONFIRMADA`, a `REEMBOLSADA`, restituyendo el cupo en `this.tipoEntrada`.
+    - Transiciona a `CANCELADA` (registrando el `CambioEstadoCompra`) y restituye el cupo en `this.tipoEntrada`. Luego el organizador podrá pasarla de `CANCELADA` a `REEMBOLSADA`.
+  - **`reembolsar(quien = this.evento.organizador, fechaActual = new Date()): void`**:
+    - Verifica que la compra esté en estado `CANCELADA` y llama a `this.actualizarEstado(EstadoCompra.REEMBOLSADA, quien, fechaActual)`.
   - **`agregarMensaje(usuario: Usuario, texto: String, enviado = new Date()): Mensaje`**:
     - Verifica que `usuario.id === this.comprador.id || usuario.id === this.evento.organizador.id`. Si es otro usuario, lanza `DomainValidationError("Solo el comprador o el organizador del evento pueden enviar mensajes en esta compra")`.
     - Crea `new Mensaje({ usuario, mensaje: texto, enviado })`, lo añade a `this.mensajes` y lo retorna.

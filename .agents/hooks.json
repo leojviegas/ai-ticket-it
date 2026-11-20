@@ -1,6 +1,6 @@
 {
-  "spec-check-reminder": {
-    "enabled": false,
+  "dudas-check-reminder": {
+    "enabled": true,
     "PreInvocation": [
       {
         "type": "command",
@@ -10,4 +10,3 @@
     ]
   }
 }
-

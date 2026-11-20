@@ -32,6 +32,7 @@ La fuente de verdad del enunciado y el diagrama de clases tentativo se encuentra
 
 Todo el desarrollo en este repositorio sigue un enfoque guiado por especificaciones (**Spec-Driven Development**):
 
+0. **Revisar `docs/dudas.md` al inicio de cada turno (Paso Obligatorio)**: Antes de iniciar cualquier lectura, planificación o modificación de archivos en cada prompt, leer `docs/dudas.md`. Si hay puntos en la sección de *Dudas Pendientes*, analizarlos, responder al usuario y esperar su definición antes de avanzar con la implementación de esos puntos. Una vez respondidos por el usuario, registrar la decisión en `docs/adr/` y mover la duda al historial de resueltas.
 1. **Consultar `docs/enunciado.md` y `specs/`** antes de escribir o modificar código.
 2. **Generar o actualizar la Spec** correspondiente en `specs/` (`domain/`, `api/`, `features/` o `ui/`) utilizando las skills del proyecto ubicadas en `.agents/skills/`.
 3. **Implementar en Back-End (`/backend`)** respetando las reglas de `backend/AGENTS.md`.

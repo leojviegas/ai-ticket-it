@@ -1,57 +1,55 @@
 # Especificación de UI Mobile 01: Pantallas, Componentes y Navegación (`frontend/`)
 
-## 1. Estructura General de la Interfaz (React Native)
+## 1. Experiencia Unificada (Estilo YouTube / YouTube Studio)
 
-Para facilitar tanto el uso real como la grabación del **video de demostración de 5 a 10 minutos**, la aplicación mobile incluye:
+Dado que en el modelo de dominio existe una única entidad `Usuario` y cualquier persona puede tanto comprar entradas para asistir a espectáculos como publicar y gestionar sus propios eventos, la aplicación ofrece **una única interfaz unificada para todos los usuarios**.
 
-1. **Barra Superior de Contexto (`UserRoleSwitcher`)**:
-   - Muestra el usuario activo (ej. *"Comprador: Sofía Martínez"* o *"Organizador: Productora Indie Live"*) y permite cambiar de usuario/rol con un toque.
-2. **Navegación por Pestañas Según Rol Activo**:
-   - **Modo Comprador**:
-     1. `Explorar Eventos` (Búsqueda textual, filtros por `Categoria`, ordenamiento por `Precio`, `Fecha`, `Puntaje Organizador`).
-     2. `Mis Compras` (Listado de compras con badge de `EstadoCompra`, contador de **días faltantes** si está `CONFIRMADA`, acceso al **Chat**, **Cancelar/Reembolsar** y **Calificar**).
-     3. `Favoritos` (Eventos guardados por el comprador).
-   - **Modo Organizador**:
-     1. `Mis Eventos` (Eventos publicados por el organizador, resumen de ventas y cupos disponibles).
-     2. `Crear Evento` (Formulario completo con carga dinámica de múltiples `TipoEntrada`).
+### Navegación Principal (Bottom Tabs)
+
+1. **`Explorar` (Inicio / Catálogo)**:
+   - Como el feed principal de YouTube: permite buscar eventos por texto, filtrar por `Categoria`, ordenar por `Precio`, `Fecha` o `Puntaje del Organizador`, guardar en favoritos y entrar al detalle de un evento para comprar entradas.
+2. **`Mis Entradas` (Compras realizadas por el usuario)**:
+   - Lista las compras que el usuario hizo para asistir a eventos, diferenciando con claridad cada `EstadoCompra` (`PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA`, `REEMBOLSADA`), mostrando los **días faltantes** cuando está `CONFIRMADA`, el acceso al **Chat de la compra**, el botón de **Cancelar compra** y el botón de **Calificar evento** (cuando está `UTILIZADA`).
+3. **`Favoritos`**:
+   - Acceso rápido a los eventos marcados como favoritos por el usuario.
+4. **`Ticket Studio` (Centro de Productor / Organizador)**:
+   - Inspirado en *YouTube Studio*: es el espacio donde cualquier usuario puede **Publicar un nuevo Evento** (definiendo sus distintos `TipoEntrada` con precio y cupo) y **Gestionar sus Eventos publicados** (ver cuántas entradas quedan disponibles de cada tipo, ver las compras recibidas, **Confirmar** compras pendientes, **Reembolsar** compras canceladas, marcar entradas como **Utilizadas** y **Responder mensajes** en el chat de cada compra).
 
 ---
 
 ## 2. Detalle de Pantallas Clave
 
-### 2.1. `ExplorarEventosScreen` (Comprador — CU 3, CU 11)
+### 2.1. `ExplorarEventosScreen` (CU 3, CU 11)
 - **Componentes**:
-  - `SearchBar`: input de texto para buscar por nombre o descripción.
-  - `CategoryChips`: carrusel horizontal de categorías (`Todas`, `Recitales`, `Teatro`, `Festivales`, `Conferencias`, `Deportes`).
-  - `SortSelector`: botones para ordenar por **Fecha**, **Precio** o **Puntaje del Organizador**.
-  - `EventCard`: muestra título, categoría, fecha, precio mínimo (*"Desde $..."*), nombre y estrellas de reputación del organizador, y botón de favorito.
+  - `SearchBar`: búsqueda textual por nombre o descripción.
+  - `CategoryChips`: filtro horizontal por categorías.
+  - `SortSelector`: ordenamiento por **Fecha**, **Precio** (menor precio del evento) o **Puntaje del Organizador**.
+  - `EventCard`: nombre del evento, categoría, fecha, precio *"Desde $..."*, nombre y reputación del organizador, y botón de favorito.
 
-### 2.2. `EventoDetalleScreen` (Comprador — CU 10, CU 12)
+### 2.2. `EventoDetalleScreen` (CU 10, CU 12)
 - **Secciones**:
-  1. Cabecera del evento (nombre, descripción, categoría, fecha y galería multimedia).
-  2. **Selector de Entradas (`TipoEntrada`)**: tarjetas para cada tipo de entrada (ej. General, Platea, VIP) mostrando descripción, precio y **cupo disponible**. Selector numérico de cantidad (`-` / `+`) bloqueado al máximo del cupo disponible y botón **"Comprar Entradas"**.
-  3. **Reputación y Reseñas del Organizador (CU 10)**: muestra el puntaje promedio del organizador y la lista de reseñas de eventos anteriores organizados por él (autor, evento reseñado, puntaje numérico y comentario).
+  1. Información completa del evento (nombre, descripción, categoría, fecha, multimedia).
+  2. **Selección de Entradas (`TipoEntrada`)**: muestra cada tipo de entrada con su descripción, precio y **cupo disponible**, selector de cantidad (sin superar el cupo) y botón **"Comprar"** (que crea la compra en estado `PENDIENTE`).
+  3. **Reputación y Reseñas de Eventos Anteriores del Organizador (CU 10)**: muestra el puntaje del organizador y las reseñas que dejaron los asistentes en eventos previos organizados por ese mismo usuario.
 
-### 2.3. `MisComprasScreen` y `CompraDetalleChatScreen` (Comprador — CU 1, CU 5, CU 7, CU 9)
+### 2.3. `MisEntradasScreen` y `CompraDetalleChatScreen` (CU 1, CU 5, CU 7, CU 9)
 - **Tarjetas de Compra**:
-  - Badge de estado con código de colores semántico:
-    - `CONFIRMADA` (Verde) + **Banner destacado: "⏳ Faltan X días para el evento"** (CU 1).
-    - `PENDIENTE` (Ámbar).
-    - `UTILIZADA` (Azul) + Botón **"⭐ Calificar Evento"** (CU 9).
-    - `CANCELADA` / `REEMBOLSADA` (Rojo / Gris) con indicador de reembolso efectuado.
-  - Botón **"Cancelar y Solicitar Reembolso"**: visible/activo cuando `estado !== UTILIZADA` (y no cancelada) y el evento aún no se realizó (CU 7 y CU 8).
-  - Botón **"💬 Chat con Organizador"**: abre el chat de la compra donde se visualizan los mensajes e historial de `CambioEstadoCompra` y se pueden enviar mensajes en cualquier momento (CU 5).
+  - Badge semántico según `EstadoCompra`:
+    - `PENDIENTE` (Ámbar): esperando confirmación del organizador.
+    - `CONFIRMADA` (Verde): incluye indicador destacado **"⏳ Faltan X días para el evento"** (CU 1).
+    - `UTILIZADA` (Azul): habilita el botón **"⭐ Calificar Evento"** (CU 9).
+    - `CANCELADA` (Rojo): pendiente de reembolso por el organizador.
+    - `REEMBOLSADA` (Gris/Violeta): reembolso acreditado por el organizador.
+  - Botón **"Cancelar Compra"**: habilitado siempre que `estado !== UTILIZADA` (ni ya cancelada/reembolsada) y el evento aún no haya ocurrido (CU 7 y CU 8). Pasa la compra a `CANCELADA` y devuelve el cupo.
+  - Botón **"💬 Chat de la Compra"**: permite enviar mensajes en cualquier momento al organizador (CU 5).
 
-### 2.4. `OrganizadorEventoVentasScreen` (Organizador — CU 2, CU 6, CU 8, CU 9)
-- **Secciones**:
-  1. **Disponibilidad por Tipo de Entrada (CU 2)**: tarjetas que muestran para cada `TipoEntrada` su precio y **cuántas entradas quedan disponibles** (`cupo` remanente).
-  2. **Compras Asociadas al Evento (CU 2)**: lista de compras recibidas con su estado, comprador, cantidad y monto total.
-  3. **Acciones del Organizador por Compra**:
-     - Abrir el **Chat de la Compra** y responder mensajes del comprador en cualquier momento (CU 6).
-     - Marcar una compra `CONFIRMADA` como **`UTILIZADA`** (simulando el ingreso al evento para habilitar que el comprador deje su reseña en vivo).
-
-### 2.5. `CrearEventoScreen` (Organizador — CU 4)
-- Formulario intuitivo para cargar:
-  - Nombre, descripción, categoría, fecha/hora del evento.
-  - Lista dinámica de **Tipos de Entrada**: permite agregar tantos tipos de entrada como desee (ej. General, Platea, VIP), definiendo para cada uno `nombre`, `descripcion`, `precio` y `cupo`.
-
+### 2.4. `TicketStudioScreen` y `GestionEventoScreen` (CU 2, CU 4, CU 6, CU 7, CU 8)
+- **Publicar Evento (`CrearEventoModal` / `CrearEventoScreen` — CU 4)**:
+  - Formulario para crear un `Evento` y agregar dinámicamente múltiples `TipoEntrada` (nombre, descripción, precio, cupo).
+- **Detalle de Gestión de un Evento Publicado (`GestionEventoScreen` — CU 2, CU 6)**:
+  1. **Disponibilidad de Entradas**: tarjetas por cada `TipoEntrada` mostrando el cupo remanente disponible y las entradas vendidas.
+  2. **Listado de Compras del Evento**: muestra todas las compras asociadas diferenciando su estado y ofreciendo las acciones del organizador:
+     - Si está `PENDIENTE` → botón **"Confirmar Compra"** (pasa a `CONFIRMADA`).
+     - Si está `CONFIRMADA` → botón **"Marcar como Utilizada"** (pasa a `UTILIZADA`).
+     - Si está `CANCELADA` → botón **"Reembolsar"** (pasa a `REEMBOLSADA`).
+     - En cualquier estado → botón **"💬 Responder Chat"** (CU 6).
