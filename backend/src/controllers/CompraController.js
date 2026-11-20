@@ -1,7 +1,8 @@
-import { validateSchema } from "../schemas/validator.js";
+import { validateSchema, validateIdParam } from "../schemas/validator.js";
 import {
   crearCompraSchema,
   listarComprasQuerySchema,
+  obtenerCompraQuerySchema,
   actualizarEstadoCompraSchema,
   accionCompraUsuarioSchema,
   agregarMensajeSchema,
@@ -25,31 +26,37 @@ export class CompraController {
   };
 
   obtenerPorId = (req, res) => {
-    const compra = this.compraService.obtenerCompraPorId(req.params.id);
+    const id = validateIdParam(req.params);
+    const filtros = validateSchema(obtenerCompraQuerySchema, req.query);
+    const compra = this.compraService.obtenerCompraPorId(id, filtros);
     res.json(compra);
   };
 
   actualizarEstado = (req, res) => {
+    const id = validateIdParam(req.params);
     const datos = validateSchema(actualizarEstadoCompraSchema, req.body);
-    const compra = this.compraService.actualizarEstado(req.params.id, datos);
+    const compra = this.compraService.actualizarEstado(id, datos);
     res.json(compra);
   };
 
   cancelar = (req, res) => {
+    const id = validateIdParam(req.params);
     const datos = validateSchema(accionCompraUsuarioSchema, req.body);
-    const compra = this.compraService.cancelarCompra(req.params.id, datos);
+    const compra = this.compraService.cancelarCompra(id, datos);
     res.json(compra);
   };
 
   reembolsar = (req, res) => {
+    const id = validateIdParam(req.params);
     const datos = validateSchema(accionCompraUsuarioSchema, req.body);
-    const compra = this.compraService.reembolsarCompra(req.params.id, datos);
+    const compra = this.compraService.reembolsarCompra(id, datos);
     res.json(compra);
   };
 
   agregarMensaje = (req, res) => {
+    const id = validateIdParam(req.params);
     const datos = validateSchema(agregarMensajeSchema, req.body);
-    const resultado = this.compraService.agregarMensaje(req.params.id, datos);
+    const resultado = this.compraService.agregarMensaje(id, datos);
     res.status(201).json(resultado);
   };
 }

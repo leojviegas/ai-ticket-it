@@ -17,19 +17,36 @@ export class UsuarioService {
     });
   }
 
+  enriquecerEvento(evento) {
+    const { puntajeEvento, cantidadReseniasEvento } =
+      this.reseniaService.obtenerResumenPorEvento(evento.id);
+    const { puntajeOrganizador, cantidadReseniasOrganizador } =
+      this.reseniaService.calcularPuntajeOrganizador(evento.organizador.id);
+
+    return {
+      ...evento.toJSON(),
+      yaOcurrio: evento.yaOcurrio(),
+      puntajeEvento,
+      cantidadReseniasEvento,
+      puntajeOrganizador,
+      cantidadReseniasOrganizador,
+    };
+  }
+
   obtenerUsuarioPorId(id) {
     const usuario = this.usuarioRepository.findByIdOrThrow(id);
     const resumenOrganizador = this.reseniaService.obtenerResumenPorOrganizador(usuario.id);
     const eventosOrganizados = this.eventoRepository
       .findByOrganizadorId(usuario.id)
-      .map((evento) => evento.toJSON());
+      .map((evento) => this.enriquecerEvento(evento));
 
     return {
       ...usuario.toJSON(),
-      favoritos: usuario.favoritos.map((evento) => evento.toJSON()),
+      favoritos: usuario.favoritos.map((evento) => this.enriquecerEvento(evento)),
       puntajeOrganizador: resumenOrganizador.puntajeOrganizador,
       cantidadReseniasOrganizador: resumenOrganizador.cantidadResenias,
       reseniasRecibidas: resumenOrganizador.resenias,
+      reseniasOrganizador: resumenOrganizador.resenias,
       eventosOrganizados,
     };
   }

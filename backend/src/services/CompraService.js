@@ -2,15 +2,43 @@ import { Compra, EstadoCompra } from "../domain/index.js";
 import { BusinessRuleError, NotFoundError } from "./errors/ServiceError.js";
 
 export class CompraService {
-  constructor({ compraRepository, usuarioRepository, eventoRepository }) {
+  constructor({
+    compraRepository,
+    usuarioRepository,
+    eventoRepository,
+    reseniaRepository = null,
+  }) {
     this.compraRepository = compraRepository;
     this.usuarioRepository = usuarioRepository;
     this.eventoRepository = eventoRepository;
+    this.reseniaRepository = reseniaRepository;
   }
 
-  crearCompra({ compradorId, eventoId, tipoEntradaId, cantidad }) {
+  enriquecerCompra(compra) {
+    const yaReseniado = this.reseniaRepository
+      ? this.reseniaRepository.existsByCompradorYEvento(compra.comprador.id, compra.evento.id)
+      : false;
+    return {
+      ...compra.toJSON(),
+      yaReseniado,
+    };
+  }
+
+  crearCompra({ compradorId, eventoId, tipoEntradaId, cantidad, fechaActual = new Date() }) {
     const comprador = this.usuarioRepository.findByIdOrThrow(compradorId);
     const evento = this.eventoRepository.findByIdOrThrow(eventoId);
+
+    if (evento.organizador.id === comprador.id) {
+      throw new BusinessRuleError(
+        "El organizador no puede comprar entradas para su propio evento"
+      );
+    }
+
+    if (evento.yaOcurrio(fechaActual)) {
+      throw new BusinessRuleError(
+        "No se pueden comprar entradas para un evento que ya se realizó"
+      );
+    }
 
     const tipoEntrada = evento.tiposEntrada.find((t) => t.id === Number(tipoEntradaId));
     if (!tipoEntrada) {
@@ -18,8 +46,6 @@ export class CompraService {
         `Tipo de entrada con id ${tipoEntradaId} no encontrado en el evento ${evento.id}`
       );
     }
-
-    tipoEntrada.descontarCupo(cantidad);
 
     const compra = new Compra({
       comprador,
@@ -29,8 +55,10 @@ export class CompraService {
       estado: EstadoCompra.PENDIENTE,
     });
 
+    tipoEntrada.descontarCupo(cantidad);
+
     this.compraRepository.save(compra);
-    return compra.toJSON();
+    return this.enriquecerCompra(compra);
   }
 
   listarCompras({ compradorId, eventoId } = {}) {
@@ -46,12 +74,22 @@ export class CompraService {
       compras = compras.filter((c) => c.evento.id === eId);
     }
 
-    return compras.map((c) => c.toJSON());
+    return compras.map((c) => this.enriquecerCompra(c));
   }
 
-  obtenerCompraPorId(id) {
+  obtenerCompraPorId(id, { usuarioId } = {}) {
     const compra = this.compraRepository.findByIdOrThrow(id);
-    return compra.toJSON();
+    if (usuarioId !== undefined && usuarioId !== "") {
+      const usuario = this.usuarioRepository.findByIdOrThrow(usuarioId);
+      const esComprador = compra.comprador.id === usuario.id;
+      const esOrganizador = compra.evento.organizador.id === usuario.id;
+      if (!esComprador && !esOrganizador) {
+        throw new BusinessRuleError(
+          "Solo el comprador o el organizador del evento pueden visualizar esta compra"
+        );
+      }
+    }
+    return this.enriquecerCompra(compra);
   }
 
   actualizarEstado(compraId, { estado, usuarioId }) {
@@ -64,8 +102,14 @@ export class CompraService {
       );
     }
 
+    if (estado === EstadoCompra.CANCELADA) {
+      throw new BusinessRuleError(
+        "Para cancelar una compra debes utilizar la operación de cancelación"
+      );
+    }
+
     compra.actualizarEstado(estado, usuario);
-    return compra.toJSON();
+    return this.enriquecerCompra(compra);
   }
 
   cancelarCompra(compraId, { usuarioId, fechaActual = new Date() }) {
@@ -86,7 +130,7 @@ export class CompraService {
     }
 
     compra.cancelar(usuario, fechaActual);
-    return compra.toJSON();
+    return this.enriquecerCompra(compra);
   }
 
   reembolsarCompra(compraId, { usuarioId }) {
@@ -100,7 +144,7 @@ export class CompraService {
     }
 
     compra.reembolsar(usuario);
-    return compra.toJSON();
+    return this.enriquecerCompra(compra);
   }
 
   agregarMensaje(compraId, { usuarioId, mensaje }) {
@@ -110,7 +154,7 @@ export class CompraService {
     const nuevoMensaje = compra.agregarMensaje(usuario, mensaje);
     return {
       mensaje: nuevoMensaje.toJSON(),
-      compra: compra.toJSON(),
+      compra: this.enriquecerCompra(compra),
     };
   }
 }

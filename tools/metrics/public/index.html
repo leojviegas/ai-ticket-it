@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Métricas de Antigravity · AI Ticket It</title>
+    <link rel="stylesheet" href="/metrics/styles.css" />
+  </head>
+  <body>
+    <main class="contenedor metricas">
+      <section class="portada">
+        <p class="sobretitulo">Observabilidad local · sin hooks extra</p>
+        <h1>Métricas de Antigravity</h1>
+        <p class="bajada">
+          Actividad, herramientas, archivos, tiempos y tokens leídos en vivo desde los
+          <code>transcript.jsonl</code> nativos de Antigravity.
+        </p>
+      </section>
+
+      <section class="metricas-filtros" aria-label="Filtros">
+        <div class="chips" id="chips-alcance"></div>
+        <div class="metricas-selectores">
+          <label>
+            Modelo
+            <select id="filtro-modelo">
+              <option value="">Todos</option>
+            </select>
+          </label>
+          <label>
+            Ventana
+            <select id="filtro-ventana">
+              <option value="">Todo</option>
+              <option value="15">15 min</option>
+              <option value="60">1 h</option>
+              <option value="1440">24 h</option>
+            </select>
+          </label>
+          <label>
+            Sesión
+            <select id="filtro-sesion">
+              <option value="">Todas</option>
+            </select>
+          </label>
+          <label class="metricas-detalle">
+            <input type="checkbox" id="filtro-detalle" />
+            Mostrar comandos completos (con secretos redactados)
+          </label>
+        </div>
+        <p class="metricas-conexion" id="estado-conexion"></p>
+      </section>
+
+      <div id="app">
+        <p class="estado-caja">Cargando métricas…</p>
+      </div>
+    </main>
+
+    <script type="module" src="/metrics/app.js"></script>
+  </body>
+</html>

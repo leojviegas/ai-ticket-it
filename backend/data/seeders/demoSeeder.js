@@ -87,7 +87,7 @@ export function seedDemo() {
     nombre: "Campo General",
     descripcion: "Acceso general al estadio",
     precio: 18000,
-    cupo: 10,
+    cupo: 14,
   });
   const eventoPasadoLucas = eventoRepository.save(
     new Evento({
@@ -107,7 +107,7 @@ export function seedDemo() {
     nombre: "Platea Central",
     descripcion: "Ubicación preferencial frente al escenario",
     precio: 12000,
-    cupo: 5,
+    cupo: 7,
   });
   const eventoPasadoSofia = eventoRepository.save(
     new Evento({
@@ -127,7 +127,7 @@ export function seedDemo() {
     nombre: "Tribuna Norte",
     descripcion: "Acceso general a tribuna",
     precio: 9000,
-    cupo: 20,
+    cupo: 21,
   });
   const eventoPasadoValentina = eventoRepository.save(
     new Evento({
@@ -251,6 +251,7 @@ export function seedDemo() {
 
   // 5. Compras en todos los estados para demostración inmediata
   // Compra 1: UTILIZADA (ya reseñada) - Sofía asistió al recital pasado de Lucas
+  entradaPasadoRock.descontarCupo(2);
   const compraUtilizadaReseniada = new Compra({
     id: 1,
     comprador: sofia,
@@ -263,7 +264,8 @@ export function seedDemo() {
   compraUtilizadaReseniada.actualizarEstado(EstadoCompra.UTILIZADA, lucas, fechaRelativa(-30));
   compraRepository.save(compraUtilizadaReseniada);
 
-  // Compra 2: UTILIZADA (sin reseñar aún, para probar CU 9 en vivo con Sofía o Mateo)
+  // Compra 2: UTILIZADA (sin reseñar aún, para probar CU 9 en vivo con Mateo)
+  entradaPasadoRock.descontarCupo(1);
   const compraUtilizadaPendienteResenia = new Compra({
     id: 2,
     comprador: mateo,
@@ -285,6 +287,7 @@ export function seedDemo() {
   compraRepository.save(compraUtilizadaPendienteResenia);
 
   // Compra 3: UTILIZADA en evento pasado de Sofía (para reseña de Lucas)
+  entradaPasadoTeatro.descontarCupo(2);
   const compraPasadaTeatro = new Compra({
     id: 3,
     comprador: lucas,
@@ -298,6 +301,7 @@ export function seedDemo() {
   compraRepository.save(compraPasadaTeatro);
 
   // Compra 4: UTILIZADA en evento pasado de Valentina (para reseña de Mateo)
+  entradaPasadoDeporte.descontarCupo(1);
   const compraPasadaDeporte = new Compra({
     id: 4,
     comprador: mateo,
@@ -376,6 +380,20 @@ export function seedDemo() {
   compraReembolsada.actualizarEstado(EstadoCompra.CANCELADA, mateo, fechaRelativa(-4));
   compraReembolsada.actualizarEstado(EstadoCompra.REEMBOLSADA, sofia, fechaRelativa(-3));
   compraRepository.save(compraReembolsada);
+
+  // Compra 9: UTILIZADA (ya reseñada) - Valentina asistió al recital pasado de Lucas
+  entradaPasadoRock.descontarCupo(1);
+  const compraValentinaPasado = new Compra({
+    id: 9,
+    comprador: valentina,
+    evento: eventoPasadoLucas,
+    tipoEntrada: entradaPasadoRock,
+    cantidad: 1,
+    estado: EstadoCompra.PENDIENTE,
+  });
+  compraValentinaPasado.actualizarEstado(EstadoCompra.CONFIRMADA, lucas, fechaRelativa(-33));
+  compraValentinaPasado.actualizarEstado(EstadoCompra.UTILIZADA, lucas, fechaRelativa(-30));
+  compraRepository.save(compraValentinaPasado);
 
   // 6. Reseñas de eventos pasados (construyen el puntaje de cada organizador)
   reseniaRepository.save(

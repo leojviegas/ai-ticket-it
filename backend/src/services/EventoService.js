@@ -1,4 +1,5 @@
 import { EstadoCompra, Evento, TipoEntrada } from "../domain/index.js";
+import { BusinessRuleError } from "./errors/ServiceError.js";
 
 function normalizarTexto(texto) {
   return String(texto)
@@ -22,7 +23,7 @@ export class EventoService {
     this.reseniaService = reseniaService;
   }
 
-  enriquecerEvento(evento) {
+  enriquecerEvento(evento, fechaReferencia = new Date()) {
     const { puntajeEvento, cantidadReseniasEvento } =
       this.reseniaService.obtenerResumenPorEvento(evento.id);
     const { puntajeOrganizador, cantidadReseniasOrganizador } =
@@ -30,6 +31,7 @@ export class EventoService {
 
     return {
       ...evento.toJSON(),
+      yaOcurrio: evento.yaOcurrio(fechaReferencia),
       puntajeEvento,
       cantidadReseniasEvento,
       puntajeOrganizador,
@@ -43,9 +45,19 @@ export class EventoService {
     organizadorId,
     precioMin,
     precioMax,
+    soloFuturos,
     ordenarPor = "fecha",
     orden,
+    fechaActual = new Date(),
   } = {}) {
+    if (precioMin !== undefined && precioMax !== undefined) {
+      const min = Number(precioMin);
+      const max = Number(precioMax);
+      if (min > max) {
+        throw new BusinessRuleError("El precio mínimo no puede ser mayor al precio máximo");
+      }
+    }
+
     let eventos = this.eventoRepository.findAll();
 
     if (q && q.trim() !== "") {
@@ -73,7 +85,11 @@ export class EventoService {
       eventos = eventos.filter((evento) => evento.tuPrecioEstaEntre(min, max));
     }
 
-    const enriquecidos = eventos.map((evento) => this.enriquecerEvento(evento));
+    if (soloFuturos === true || soloFuturos === "true") {
+      eventos = eventos.filter((evento) => !evento.yaOcurrio(fechaActual));
+    }
+
+    const enriquecidos = eventos.map((evento) => this.enriquecerEvento(evento, fechaActual));
 
     const direccion = orden || (ordenarPor === "puntaje" ? "desc" : "asc");
     const factor = direccion === "desc" ? -1 : 1;
@@ -83,6 +99,11 @@ export class EventoService {
         return (a.precioMinimo - b.precioMinimo) * factor;
       }
       if (ordenarPor === "puntaje") {
+        const aSinResenias = a.cantidadReseniasOrganizador === 0;
+        const bSinResenias = b.cantidadReseniasOrganizador === 0;
+        if (aSinResenias !== bSinResenias) {
+          return aSinResenias ? 1 : -1;
+        }
         return (a.puntajeOrganizador - b.puntajeOrganizador) * factor;
       }
       return (new Date(a.fecha).getTime() - new Date(b.fecha).getTime()) * factor;
@@ -100,12 +121,16 @@ export class EventoService {
 
     return {
       ...evento.toJSON(),
+      yaOcurrio: evento.yaOcurrio(),
       puntajeEvento: resumenEvento.puntajeEvento,
       cantidadReseniasEvento: resumenEvento.cantidadReseniasEvento,
       reseniasEvento: resumenEvento.resenias,
       puntajeOrganizador: resumenOrganizador.puntajeOrganizador,
       cantidadReseniasOrganizador: resumenOrganizador.cantidadResenias,
       reseniasOrganizador: resumenOrganizador.resenias,
+      reseniasEventosAnterioresOrganizador: resumenOrganizador.resenias.filter(
+        (r) => r.eventoId !== evento.id
+      ),
     };
   }
 
@@ -117,9 +142,21 @@ export class EventoService {
     fecha,
     multimedia = [],
     tiposEntrada = [],
+    fechaActual = new Date(),
   }) {
     const categoria = this.categoriaRepository.findByIdOrThrow(categoriaId);
     const organizador = this.usuarioRepository.findByIdOrThrow(organizadorId);
+
+    const nombresNormalizados = new Set();
+    for (const tipo of tiposEntrada) {
+      const clave = normalizarTexto(String(tipo.nombre).trim());
+      if (nombresNormalizados.has(clave)) {
+        throw new BusinessRuleError(
+          "No se pueden definir tipos de entrada con nombres duplicados en el mismo evento"
+        );
+      }
+      nombresNormalizados.add(clave);
+    }
 
     const entradas = tiposEntrada.map(
       (tipo) =>
@@ -141,36 +178,56 @@ export class EventoService {
       organizador,
     });
 
+    if (evento.yaOcurrio(fechaActual)) {
+      throw new BusinessRuleError("La fecha del evento debe ser futura");
+    }
+
     this.eventoRepository.save(evento);
-    return this.enriquecerEvento(evento);
+    return this.enriquecerEvento(evento, fechaActual);
   }
 
-  obtenerComprasYDisponibilidad(eventoId) {
+  obtenerComprasYDisponibilidad(eventoId, { organizadorId } = {}) {
     const evento = this.eventoRepository.findByIdOrThrow(eventoId);
-    const compras = this.compraRepository.findByEventoId(evento.id);
+    if (organizadorId !== undefined && organizadorId !== "") {
+      const organizador = this.usuarioRepository.findByIdOrThrow(organizadorId);
+      if (evento.organizador.id !== organizador.id) {
+        throw new BusinessRuleError(
+          "Solo el organizador del evento puede consultar sus compras y disponibilidad"
+        );
+      }
+    }
 
-    const estadosActivos = [
-      EstadoCompra.PENDIENTE,
-      EstadoCompra.CONFIRMADA,
-      EstadoCompra.UTILIZADA,
-    ];
+    const compras = this.compraRepository.findByEventoId(evento.id);
+    const reseniasEvento = this.reseniaService.obtenerResumenPorEvento(evento.id).resenias;
 
     const disponibilidadPorTipo = evento.tiposEntrada.map((tipo) => {
       const entradasVendidas = compras
-        .filter((c) => c.tipoEntrada.id === tipo.id && estadosActivos.includes(c.estado))
+        .filter(
+          (c) =>
+            c.tipoEntrada.id === tipo.id &&
+            (c.estado === EstadoCompra.CONFIRMADA || c.estado === EstadoCompra.UTILIZADA)
+        )
+        .reduce((acc, c) => acc + c.cantidad, 0);
+
+      const entradasReservadas = compras
+        .filter((c) => c.tipoEntrada.id === tipo.id && c.estado === EstadoCompra.PENDIENTE)
         .reduce((acc, c) => acc + c.cantidad, 0);
 
       return {
         ...tipo.toJSON(),
         cupoDisponible: tipo.cupo,
         entradasVendidas,
+        entradasReservadas,
       };
     });
 
     return {
       evento: this.enriquecerEvento(evento),
       disponibilidadPorTipo,
-      compras: compras.map((c) => c.toJSON()),
+      compras: compras.map((c) => ({
+        ...c.toJSON(),
+        yaReseniado: reseniasEvento.some((r) => r.comprador.id === c.comprador.id),
+      })),
     };
   }
 }

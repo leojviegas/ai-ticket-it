@@ -12,7 +12,15 @@ export class Evento {
     multimedia = [],
     organizador,
   } = {}) {
-    if (!nombre || !descripcion || !categoria || !organizador || !fecha) {
+    if (
+      typeof nombre !== "string" ||
+      nombre.trim() === "" ||
+      typeof descripcion !== "string" ||
+      descripcion.trim() === "" ||
+      !categoria ||
+      !organizador ||
+      !fecha
+    ) {
       throw new DomainValidationError("Faltan datos obligatorios para el evento");
     }
     const fechaNormalizada = fecha instanceof Date ? fecha : new Date(fecha);

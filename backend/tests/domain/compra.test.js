@@ -189,6 +189,30 @@ describe("Compra", () => {
     expect(() => compra.reembolsar(organizador)).toThrow(InvalidStateTransitionError);
   });
 
+  test("cancelar lanza InvalidStateTransitionError si la compra ya está CANCELADA o REEMBOLSADA incluso en evento pasado", () => {
+    const compraCancelada = new Compra({
+      comprador,
+      evento: eventoFuturo,
+      tipoEntrada,
+      cantidad: 1,
+      estado: EstadoCompra.CANCELADA,
+    });
+    expect(() =>
+      compraCancelada.cancelar(comprador, new Date("2026-11-12T20:00:00.000Z"))
+    ).toThrow("No se puede cambiar el estado de la compra de CANCELADA a CANCELADA");
+
+    const compraReembolsada = new Compra({
+      comprador,
+      evento: eventoFuturo,
+      tipoEntrada,
+      cantidad: 1,
+      estado: EstadoCompra.REEMBOLSADA,
+    });
+    expect(() =>
+      compraReembolsada.cancelar(comprador, new Date("2026-11-12T20:00:00.000Z"))
+    ).toThrow("No se puede cambiar el estado de la compra de REEMBOLSADA a CANCELADA");
+  });
+
   test("cancelar lanza InvalidStateTransitionError si la compra ya fue UTILIZADA", () => {
     const compra = new Compra({
       comprador,

@@ -84,7 +84,19 @@ describe("Evento", () => {
     expect(() => new Evento({ ...base, nombre: "" })).toThrow(
       "Faltan datos obligatorios para el evento"
     );
+    expect(() => new Evento({ ...base, nombre: "   " })).toThrow(
+      "Faltan datos obligatorios para el evento"
+    );
+    expect(() => new Evento({ ...base, nombre: 123 })).toThrow(
+      "Faltan datos obligatorios para el evento"
+    );
     expect(() => new Evento({ ...base, descripcion: "" })).toThrow(
+      "Faltan datos obligatorios para el evento"
+    );
+    expect(() => new Evento({ ...base, descripcion: "   " })).toThrow(
+      "Faltan datos obligatorios para el evento"
+    );
+    expect(() => new Evento({ ...base, descripcion: 123 })).toThrow(
       "Faltan datos obligatorios para el evento"
     );
     expect(() => new Evento({ ...base, categoria: null })).toThrow(

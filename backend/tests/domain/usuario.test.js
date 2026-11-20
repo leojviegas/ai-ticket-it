@@ -7,8 +7,8 @@ describe("Usuario", () => {
     resetContadoresId();
   });
 
-  test("crea un usuario válido con id autoincremental y favoritos vacío por defecto", () => {
-    const u1 = new Usuario({ nombre: "Ana", apellido: "Gómez" });
+  test("crea un usuario válido con id autoincremental, recorta espacios y favoritos vacío por defecto", () => {
+    const u1 = new Usuario({ nombre: "  Ana  ", apellido: "  Gómez  " });
     const u2 = new Usuario({ nombre: "Luis", apellido: "Pérez" });
 
     expect(u1.id).toBe(1);
@@ -28,6 +28,18 @@ describe("Usuario", () => {
       "El nombre y el apellido del usuario son obligatorios"
     );
     expect(() => new Usuario({ nombre: "Ana" })).toThrow(
+      "El nombre y el apellido del usuario son obligatorios"
+    );
+    expect(() => new Usuario({ nombre: "   ", apellido: "Gómez" })).toThrow(
+      "El nombre y el apellido del usuario son obligatorios"
+    );
+    expect(() => new Usuario({ nombre: "Ana", apellido: "   " })).toThrow(
+      "El nombre y el apellido del usuario son obligatorios"
+    );
+    expect(() => new Usuario({ nombre: 123, apellido: "Gómez" })).toThrow(
+      "El nombre y el apellido del usuario son obligatorios"
+    );
+    expect(() => new Usuario({ nombre: "Ana", apellido: 123 })).toThrow(
       "El nombre y el apellido del usuario son obligatorios"
     );
     expect(() => new Usuario({})).toThrow("El nombre y el apellido del usuario son obligatorios");

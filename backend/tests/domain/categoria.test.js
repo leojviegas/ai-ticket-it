@@ -7,8 +7,8 @@ describe("Categoria", () => {
     resetContadoresId();
   });
 
-  test("crea una categoría válida con id autoincremental y la serializa a JSON", () => {
-    const c1 = new Categoria({ nombre: "Recitales", descripcion: "Música en vivo" });
+  test("crea una categoría válida con id autoincremental, recorta espacios y la serializa a JSON", () => {
+    const c1 = new Categoria({ nombre: "  Recitales  ", descripcion: "  Música en vivo  " });
     const c2 = new Categoria({ nombre: "Teatro", descripcion: "Obras teatrales" });
 
     expect(c1.id).toBe(1);
@@ -31,6 +31,18 @@ describe("Categoria", () => {
       "El nombre y la descripción de la categoría son obligatorios"
     );
     expect(() => new Categoria({ nombre: "Recitales" })).toThrow(
+      "El nombre y la descripción de la categoría son obligatorios"
+    );
+    expect(() => new Categoria({ nombre: "   ", descripcion: "Música" })).toThrow(
+      "El nombre y la descripción de la categoría son obligatorios"
+    );
+    expect(() => new Categoria({ nombre: "Recitales", descripcion: "   " })).toThrow(
+      "El nombre y la descripción de la categoría son obligatorios"
+    );
+    expect(() => new Categoria({ nombre: 123, descripcion: "Música" })).toThrow(
+      "El nombre y la descripción de la categoría son obligatorios"
+    );
+    expect(() => new Categoria({ nombre: "Recitales", descripcion: 123 })).toThrow(
       "El nombre y la descripción de la categoría son obligatorios"
     );
     expect(() => new Categoria({})).toThrow(

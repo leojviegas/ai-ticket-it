@@ -1,0 +1,75 @@
+{
+  "comentario": "Precios estimados en USD por millón de tokens. Si un modelo no figura acá, el costo se muestra como n/d (nunca 0). Podés agregar nuevos modelos de Antigravity/Gemini/Claude/OpenAI editando este archivo.",
+  "moneda": "USD",
+  "actualizado": "2026-11-20",
+  "modelos": [
+    {
+      "id": "gemini-2.5-pro",
+      "nombre": "Gemini 2.5 Pro",
+      "proveedor": "Google",
+      "entrada": 1.25,
+      "salida": 10,
+      "cacheLectura": 0.125,
+      "umbralPrompt": 200000,
+      "superior": {
+        "entrada": 2.5,
+        "salida": 15,
+        "cacheLectura": 0.25
+      }
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "nombre": "Gemini 2.5 Flash",
+      "proveedor": "Google",
+      "entrada": 0.3,
+      "salida": 2.5
+    },
+    {
+      "id": "gemini-2.5-flash-lite",
+      "nombre": "Gemini 2.5 Flash-Lite",
+      "proveedor": "Google",
+      "entrada": 0.1,
+      "salida": 0.4
+    },
+    {
+      "id": "claude-opus-4-5",
+      "nombre": "Claude Opus 4.5",
+      "proveedor": "Anthropic",
+      "entrada": 5,
+      "salida": 25,
+      "cacheLectura": 0.5
+    },
+    {
+      "id": "claude-sonnet-4-5",
+      "nombre": "Claude Sonnet 4.5",
+      "proveedor": "Anthropic",
+      "entrada": 3,
+      "salida": 15,
+      "cacheLectura": 0.3
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "nombre": "Claude Haiku 4.5",
+      "proveedor": "Anthropic",
+      "entrada": 1,
+      "salida": 5,
+      "cacheLectura": 0.1
+    },
+    {
+      "id": "gpt-5",
+      "nombre": "GPT-5",
+      "proveedor": "OpenAI",
+      "entrada": 1.25,
+      "salida": 10,
+      "cacheLectura": 0.125
+    },
+    {
+      "id": "gpt-5-mini",
+      "nombre": "GPT-5 mini",
+      "proveedor": "OpenAI",
+      "entrada": 0.25,
+      "salida": 2,
+      "cacheLectura": 0.025
+    }
+  ]
+}

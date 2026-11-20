@@ -51,4 +51,17 @@ describe("ReseniaService", () => {
       })
     ).toThrow(BusinessRuleError);
   });
+
+  test("lista reseñas filtradas por compradorId o eventoId y expone alias consistentes por organizador", () => {
+    const deSofia = reseniaService.listarResenias({ compradorId: 1 });
+    expect(deSofia).toHaveLength(1);
+    expect(deSofia[0].eventoId).toBe(1);
+
+    const delEvento1 = reseniaService.listarResenias({ eventoId: 1 });
+    expect(delEvento1).toHaveLength(2);
+
+    const resumen = reseniaService.obtenerResumenPorOrganizador(2);
+    expect(resumen.cantidadReseniasOrganizador).toBe(2);
+    expect(resumen.reseniasOrganizador).toHaveLength(2);
+  });
 });

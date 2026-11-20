@@ -1,5 +1,9 @@
-import { validateSchema } from "../schemas/validator.js";
-import { crearEventoSchema, listarEventosQuerySchema } from "../schemas/eventoSchemas.js";
+import { validateSchema, validateIdParam } from "../schemas/validator.js";
+import {
+  crearEventoSchema,
+  listarEventosQuerySchema,
+  obtenerComprasEventoQuerySchema,
+} from "../schemas/eventoSchemas.js";
 
 export class EventoController {
   constructor(eventoService) {
@@ -13,7 +17,8 @@ export class EventoController {
   };
 
   obtenerDetalle = (req, res) => {
-    const evento = this.eventoService.obtenerEventoDetalle(req.params.id);
+    const id = validateIdParam(req.params);
+    const evento = this.eventoService.obtenerEventoDetalle(id);
     res.json(evento);
   };
 
@@ -24,7 +29,9 @@ export class EventoController {
   };
 
   obtenerComprasYDisponibilidad = (req, res) => {
-    const resultado = this.eventoService.obtenerComprasYDisponibilidad(req.params.id);
+    const id = validateIdParam(req.params);
+    const filtros = validateSchema(obtenerComprasEventoQuerySchema, req.query);
+    const resultado = this.eventoService.obtenerComprasYDisponibilidad(id, filtros);
     res.json(resultado);
   };
 }

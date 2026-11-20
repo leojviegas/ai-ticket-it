@@ -7,10 +7,10 @@ describe("TipoEntrada", () => {
     resetContadoresId();
   });
 
-  test("crea un TipoEntrada válido incluso con precio 0 y cupo 0", () => {
+  test("crea un TipoEntrada válido incluso con precio 0 y cupo 0 y recorta espacios", () => {
     const gratuita = new TipoEntrada({
-      nombre: "General Gratis",
-      descripcion: "Entrada libre",
+      nombre: "  General Gratis  ",
+      descripcion: "  Entrada libre  ",
       precio: 0,
       cupo: 0,
     });
@@ -30,6 +30,18 @@ describe("TipoEntrada", () => {
       "El nombre y la descripción del tipo de entrada son obligatorios"
     );
     expect(() => new TipoEntrada({ nombre: "VIP", precio: 100, cupo: 10 })).toThrow(
+      "El nombre y la descripción del tipo de entrada son obligatorios"
+    );
+    expect(() => new TipoEntrada({ nombre: "   ", descripcion: "Desc", precio: 100, cupo: 10 })).toThrow(
+      "El nombre y la descripción del tipo de entrada son obligatorios"
+    );
+    expect(() => new TipoEntrada({ nombre: "VIP", descripcion: "   ", precio: 100, cupo: 10 })).toThrow(
+      "El nombre y la descripción del tipo de entrada son obligatorios"
+    );
+    expect(() => new TipoEntrada({ nombre: 123, descripcion: "Desc", precio: 100, cupo: 10 })).toThrow(
+      "El nombre y la descripción del tipo de entrada son obligatorios"
+    );
+    expect(() => new TipoEntrada({ nombre: "VIP", descripcion: 123, precio: 100, cupo: 10 })).toThrow(
       "El nombre y la descripción del tipo de entrada son obligatorios"
     );
     expect(() => new TipoEntrada()).toThrow(DomainValidationError);
@@ -83,10 +95,10 @@ describe("TipoEntrada", () => {
     expect(entrada.cupo).toBe(0);
 
     expect(() => entrada.descontarCupo(1)).toThrow(
-      "No hay cupo suficiente para la cantidad solicitada"
+      "No hay cupo suficiente para la cantidad solicitada (disponible: 0)"
     );
     expect(() => entrada.descontarCupo(0)).toThrow(
-      "No hay cupo suficiente para la cantidad solicitada"
+      "No hay cupo suficiente para la cantidad solicitada (disponible: 0)"
     );
 
     entrada.restituirCupo(4);

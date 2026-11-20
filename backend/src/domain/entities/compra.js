@@ -73,6 +73,11 @@ export class Compra {
     if (this.estado === EstadoCompra.UTILIZADA) {
       throw new InvalidStateTransitionError("No se puede cancelar una compra que ya fue utilizada");
     }
+    if (this.estado !== EstadoCompra.PENDIENTE && this.estado !== EstadoCompra.CONFIRMADA) {
+      throw new InvalidStateTransitionError(
+        `No se puede cambiar el estado de la compra de ${this.estado} a ${EstadoCompra.CANCELADA}`
+      );
+    }
     if (this.evento.yaOcurrio(fechaActual)) {
       throw new DomainValidationError("No se puede cancelar una compra de un evento que ya se realizó");
     }

@@ -3,7 +3,12 @@ import { generarId } from "../utils/idGenerator.js";
 
 export class TipoEntrada {
   constructor({ id = generarId(), nombre, descripcion, precio, cupo } = {}) {
-    if (!nombre || !descripcion) {
+    if (
+      typeof nombre !== "string" ||
+      nombre.trim() === "" ||
+      typeof descripcion !== "string" ||
+      descripcion.trim() === ""
+    ) {
       throw new DomainValidationError("El nombre y la descripción del tipo de entrada son obligatorios");
     }
     if (typeof precio !== "number" || Number.isNaN(precio) || precio < 0) {
@@ -14,8 +19,8 @@ export class TipoEntrada {
     }
 
     this.id = id;
-    this.nombre = nombre;
-    this.descripcion = descripcion;
+    this.nombre = nombre.trim();
+    this.descripcion = descripcion.trim();
     this.precio = precio;
     this.cupo = cupo;
   }
@@ -29,7 +34,9 @@ export class TipoEntrada {
 
   descontarCupo(cantidad) {
     if (!this.hayCupoPara(cantidad)) {
-      throw new DomainValidationError("No hay cupo suficiente para la cantidad solicitada");
+      throw new DomainValidationError(
+        `No hay cupo suficiente para la cantidad solicitada (disponible: ${this.cupo})`
+      );
     }
     this.cupo -= cantidad;
   }

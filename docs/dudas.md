@@ -1,13 +1,12 @@
 # Registro de Dudas de Diseño (`docs/dudas.md`)
 
-> **Regla para el Agente de IA**: Este archivo debe leerse obligatoriamente al inicio de cada turno/prompt antes de ejecutar cualquier cambio de código. Si existen ítems bajo la sección **Dudas Pendientes**, el agente debe analizarlos, responderlos con sus alternativas e implicancias, y esperar la definición del desarrollador para luego volcar la decisión final en `docs/adr/` y mover la duda a la sección de resueltas.
+> **Regla para el Agente de IA**: Este archivo debe leerse al inicio de cada turno/prompt antes de ejecutar cualquier cambio de código. Si existen dudas nuevas (sin la marca `[LEIDA]`) bajo la sección **1. Dudas Pendientes (Activas)**, el agente debe analizarlas, responderlas con sus alternativas e implicancias y **marcarlas inmediatamente con `[LEIDA]`** en este mismo archivo para no volver a mencionarlas ni responderlas en futuros chats. Las dudas marcadas con `[LEIDA]` se ignoran hasta que el desarrollador indique su decisión final, momento en el cual se documenta en `docs/adr/` y se mueve a la sección **2. Historial de Dudas Resueltas**.
 
 ---
 
 ## 1. Dudas Pendientes (Activas)
 
-*(Borrador incompleto detectado en la edición anterior — completar si deseas consultarlo)*
-- `en el diagrama de clases, por qué CambioEstadoCompra ...`
+<!-- Escribí acá cualquier duda nueva. Cuando el agente la lea y responda, le agregará la marca [LEIDA] para no repetirla en chats posteriores. -->
 
 ---
 
@@ -21,3 +20,4 @@
 | `DUDA-04` | Persistencia en memoria | Confirmada persistencia pura en RAM (sin BD externa); al reiniciar el proceso se restauran los seeders. | [ADR 002](./adr/002-cancelacion-puntajes-y-persistencia.md) |
 | `DUDA-05` | Puntaje calculado vs. almacenado | Calculado al vuelo (*on-the-fly*) tanto para el puntaje promedio de cada evento como para el puntaje general del organizador. | [ADR 002](./adr/002-cancelacion-puntajes-y-persistencia.md) |
 | `DUDA-06` | Cancelación de compra `PENDIENTE` por organizador | Opción A: en `PENDIENTE` pueden cancelar comprador u organizador; en `CONFIRMADA` solo el comprador. Si hubo pago, desde `CANCELADA` el organizador puede pasarla a `REEMBOLSADA`. | [ADR 002](./adr/002-cancelacion-puntajes-y-persistencia.md) |
+| `DUDA-07` | Uso de `index.js` en `repositories/`, `services/` y `domain/` | Opción A: mantener `repositories/index.js` y `services/index.js` como Composition Root con inyección por constructor, y `domain/index.js` como fachada del dominio. | [ADR 003](./adr/003-inyeccion-dependencias-y-barrels-index.md) |

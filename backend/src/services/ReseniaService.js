@@ -45,6 +45,22 @@ export class ReseniaService {
     return resenia.toJSON();
   }
 
+  listarResenias({ compradorId, eventoId } = {}) {
+    let resenias = this.reseniaRepository.findAll();
+
+    if (compradorId !== undefined && compradorId !== "") {
+      const cId = Number(compradorId);
+      resenias = resenias.filter((r) => r.comprador.id === cId);
+    }
+
+    if (eventoId !== undefined && eventoId !== "") {
+      const eId = Number(eventoId);
+      resenias = resenias.filter((r) => r.evento.id === eId);
+    }
+
+    return resenias.map((r) => r.toJSON());
+  }
+
   obtenerResumenPorEvento(eventoId) {
     const resenias = this.reseniaRepository.findByEventoId(eventoId);
     return {
@@ -57,11 +73,14 @@ export class ReseniaService {
   obtenerResumenPorOrganizador(organizadorId) {
     const organizador = this.usuarioRepository.findByIdOrThrow(organizadorId);
     const resenias = this.reseniaRepository.findByOrganizadorId(organizador.id);
+    const reseniasJson = resenias.map((r) => r.toJSON());
     return {
       organizador: organizador.toJSON(),
       puntajeOrganizador: calcularPromedio(resenias),
       cantidadResenias: resenias.length,
-      resenias: resenias.map((r) => r.toJSON()),
+      cantidadReseniasOrganizador: resenias.length,
+      resenias: reseniasJson,
+      reseniasOrganizador: reseniasJson,
     };
   }
 

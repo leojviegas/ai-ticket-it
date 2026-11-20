@@ -34,4 +34,5 @@ export const compraService = new CompraService({
   compraRepository,
   usuarioRepository,
   eventoRepository,
+  reseniaRepository,
 });

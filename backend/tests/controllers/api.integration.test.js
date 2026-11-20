@@ -179,4 +179,118 @@ describe("API REST Integration (Express)", () => {
     expect(resOrg.status).toBe(200);
     expect(resOrg.body.cantidadResenias).toBe(3);
   });
+
+  test("protege las 4 fallas críticas por HTTP (cancelación por PATCH, evento pasado, auto-compra y query params vacíos)", async () => {
+    // 1. No permite cancelar vía PATCH /api/compras/:id/estado
+    const cancelViaPatch = await request(server, "PATCH", "/api/compras/5/estado", {
+      estado: "CANCELADA",
+      usuarioId: 2,
+    });
+    expect(cancelViaPatch.status).toBe(400);
+
+    const compra5 = await request(server, "GET", "/api/compras/5");
+    expect(compra5.status).toBe(200);
+    expect(compra5.body.estado).toBe("CONFIRMADA");
+
+    // 2. No permite comprar entradas de un evento pasado
+    const compraPasada = await request(server, "POST", "/api/compras", {
+      compradorId: 4,
+      eventoId: 1,
+      tipoEntradaId: 101,
+      cantidad: 1,
+    });
+    expect(compraPasada.status).toBe(400);
+
+    // 3. No permite que el organizador compre entradas de su propio evento
+    const autoCompra = await request(server, "POST", "/api/compras", {
+      compradorId: 2,
+      eventoId: 4,
+      tipoEntradaId: 201,
+      cantidad: 1,
+    });
+    expect(autoCompra.status).toBe(400);
+
+    // 4. Query params vacíos en eventos y compras no rompen ni filtran a 0
+    const eventosVacios = await request(
+      server,
+      "GET",
+      "/api/eventos?q=&categoriaId=&organizadorId=&precioMin=&precioMax=&ordenarPor=&orden="
+    );
+    expect(eventosVacios.status).toBe(200);
+    expect(eventosVacios.body).toHaveLength(7);
+
+    const eventosPrecioMaxVacio = await request(server, "GET", "/api/eventos?precioMax=");
+    expect(eventosPrecioMaxVacio.status).toBe(200);
+    expect(eventosPrecioMaxVacio.body).toHaveLength(7);
+
+    const catCero = await request(server, "GET", "/api/eventos?categoriaId=0");
+    expect(catCero.status).toBe(400);
+
+    const precioNeg = await request(server, "GET", "/api/eventos?precioMax=-1");
+    expect(precioNeg.status).toBe(400);
+
+    const comprasVacias = await request(server, "GET", "/api/compras?compradorId=&eventoId=");
+    expect(comprasVacias.status).toBe(200);
+    expect(comprasVacias.body).toHaveLength(9);
+
+    const compradorCero = await request(server, "GET", "/api/compras?compradorId=0");
+    expect(compradorCero.status).toBe(400);
+  });
+
+  test("cubre las mejoras de contratos, filtros, multimedia, reseñas y acceso en endpoints HTTP", async () => {
+    const reseniasSofia = await request(server, "GET", "/api/resenias?compradorId=1");
+    expect(reseniasSofia.status).toBe(200);
+    expect(reseniasSofia.body).toHaveLength(1);
+
+    const usuario1 = await request(server, "GET", "/api/usuarios/1");
+    expect(usuario1.status).toBe(200);
+    expect(usuario1.body.favoritos[0].puntajeOrganizador).toBeDefined();
+    expect(usuario1.body.eventosOrganizados[0].puntajeOrganizador).toBeDefined();
+    expect(usuario1.body.reseniasOrganizador).toHaveLength(1);
+
+    const multimediaInvalida = await request(server, "POST", "/api/eventos", {
+      nombre: "Show con URL mala",
+      descripcion: "Prueba validación",
+      categoriaId: 1,
+      organizadorId: 1,
+      fecha: new Date(Date.now() + 86400000 * 5).toISOString(),
+      multimedia: ["no-es-una-url"],
+      tiposEntrada: [{ nombre: "General", descripcion: "Campo", precio: 5000, cupo: 10 }],
+    });
+    expect(multimediaInvalida.status).toBe(400);
+
+    const soloFuturos = await request(server, "GET", "/api/eventos?soloFuturos=true");
+    expect(soloFuturos.status).toBe(200);
+    expect(soloFuturos.body).toHaveLength(4);
+
+    const detalleFuturo = await request(server, "GET", "/api/eventos/4");
+    expect(detalleFuturo.status).toBe(200);
+    expect(detalleFuturo.body.reseniasEventosAnterioresOrganizador).toHaveLength(2);
+
+    const compraAjena = await request(server, "GET", "/api/compras/2?usuarioId=3");
+    expect(compraAjena.status).toBe(400);
+
+    const panelAjeno = await request(server, "GET", "/api/eventos/5/compras?organizadorId=2");
+    expect(panelAjeno.status).toBe(400);
+  });
+
+  test("valida que los parámetros :id en rutas sean enteros positivos devolviendo 400 Bad Request", async () => {
+    const endpointsInvalidos = [
+      ["GET", "/api/eventos/abc"],
+      ["GET", "/api/eventos/0/compras"],
+      ["GET", "/api/usuarios/-1"],
+      ["POST", "/api/usuarios/abc/favoritos", { eventoId: 4 }],
+      ["GET", "/api/compras/1.5"],
+      ["PATCH", "/api/compras/abc/estado", { estado: "CONFIRMADA", usuarioId: 1 }],
+      ["POST", "/api/compras/0/cancelar", { usuarioId: 1 }],
+      ["POST", "/api/compras/-3/reembolsar", { usuarioId: 1 }],
+      ["POST", "/api/compras/abc/mensajes", { usuarioId: 1, mensaje: "Hola" }],
+      ["GET", "/api/organizadores/abc/resenias"],
+    ];
+
+    for (const [method, path, body] of endpointsInvalidos) {
+      const res = await request(server, method, path, body ?? null);
+      expect(res.status).toBe(400);
+    }
+  });
 });

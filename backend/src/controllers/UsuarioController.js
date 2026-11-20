@@ -1,4 +1,4 @@
-import { validateSchema } from "../schemas/validator.js";
+import { validateSchema, validateIdParam } from "../schemas/validator.js";
 import { toggleFavoritoSchema } from "../schemas/usuarioSchemas.js";
 
 export class UsuarioController {
@@ -12,13 +12,15 @@ export class UsuarioController {
   };
 
   obtenerPorId = (req, res) => {
-    const usuario = this.usuarioService.obtenerUsuarioPorId(req.params.id);
+    const id = validateIdParam(req.params);
+    const usuario = this.usuarioService.obtenerUsuarioPorId(id);
     res.json(usuario);
   };
 
   toggleFavorito = (req, res) => {
+    const id = validateIdParam(req.params);
     const { eventoId } = validateSchema(toggleFavoritoSchema, req.body);
-    const resultado = this.usuarioService.toggleFavorito(req.params.id, eventoId);
+    const resultado = this.usuarioService.toggleFavorito(id, eventoId);
     res.json(resultado);
   };
 }

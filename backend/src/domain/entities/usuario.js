@@ -3,12 +3,17 @@ import { generarId } from "../utils/idGenerator.js";
 
 export class Usuario {
   constructor({ id = generarId(), nombre, apellido, favoritos = [] } = {}) {
-    if (!nombre || !apellido) {
+    if (
+      typeof nombre !== "string" ||
+      nombre.trim() === "" ||
+      typeof apellido !== "string" ||
+      apellido.trim() === ""
+    ) {
       throw new DomainValidationError("El nombre y el apellido del usuario son obligatorios");
     }
     this.id = id;
-    this.nombre = nombre;
-    this.apellido = apellido;
+    this.nombre = nombre.trim();
+    this.apellido = apellido.trim();
     this.favoritos = favoritos;
   }
 
