@@ -1,4 +1,5 @@
 import { seedDemo } from "../../data/seeders/demoSeeder.js";
+import { Usuario } from "../../src/domain/index.js";
 import { BaseMemoryRepository } from "../../src/repositories/BaseMemoryRepository.js";
 import {
   categoriaRepository,
@@ -75,6 +76,23 @@ describe("Repositories en memoria", () => {
 
     expect(reseniaRepository.existsByCompradorYEvento(1, 1)).toBe(true);
     expect(reseniaRepository.existsByCompradorYEvento(4, 1)).toBe(false);
+  });
+
+  test("usuarioRepository.findByEmail busca por email ignorando mayúsculas y espacios", () => {
+    const conEmail = new Usuario({
+      id: 99,
+      nombre: "Elena",
+      apellido: "Díaz",
+      email: "elena.diaz@example.com",
+      passwordHash: "hash",
+    });
+    usuarioRepository.save(conEmail);
+
+    expect(usuarioRepository.findByEmail("elena.diaz@example.com")).toBe(conEmail);
+    expect(usuarioRepository.findByEmail("  ELENA.DIAZ@EXAMPLE.COM  ")).toBe(conEmail);
+    expect(usuarioRepository.findByEmail("inexistente@example.com")).toBeNull();
+    expect(usuarioRepository.findByEmail("   ")).toBeNull();
+    expect(usuarioRepository.findByEmail(null)).toBeNull();
   });
 
   test("errores de repositorio preservan nombre, mensaje y detalles", () => {

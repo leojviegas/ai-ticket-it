@@ -20,7 +20,7 @@ La fuente de verdad del enunciado y el diagrama de clases tentativo se encuentra
 2. **Back-End (`/backend`)**:
    - **Node.js + Express** con **ES Modules** (`"type": "module"`).
    - **Persistencia en memoria**: Todos los datos deben almacenarse en memoria (estructuras en memoria encapsuladas en `src/repositories/` con datos iniciales en `data/seeders/` para facilitar pruebas y demostración). No utilizar bases de datos externas.
-   - **Testing y Mutation Testing**: Tests con **Jest** (`npm test`) y evaluación de mutaciones sobre `src/domain/entities/**/*.js` con **Stryker Mutator** (`@stryker-mutator/core` + `@stryker-mutator/jest-runner`, `npm run mutation`).
+   - **Testing y Mutation Testing**: Tests con **Jest** (`npm test`) y evaluación de mutaciones sobre `src/domain/entities/**/*.js` con **Stryker Mutator** (`@stryker-mutator/core` + `@stryker-mutator/jest-runner`, `npm run mutation`). **Importante**: no ejecutar `npm run mutation` automáticamente después de cada edición por su alto tiempo de ejecución; correr únicamente `npm test` y ejecutar Stryker solo cuando el usuario lo solicite explícitamente.
 3. **Front-End (`/frontend`)**:
    - **React Native** ejecutable de forma local en un dispositivo móvil físico o emulador.
 4. **Fidelidad al Modelo de Dominio**:

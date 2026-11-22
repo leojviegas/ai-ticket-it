@@ -21,6 +21,7 @@ Este archivo define las directrices específicas para el desarrollo del Back-End
   - Se evalúa la calidad de los tests de dominio usando `@stryker-mutator/core` y `@stryker-mutator/jest-runner`.
   - Configurado en `stryker.config.mjs` apuntando a `mutate: ["src/domain/entities/**/*.js"]` con `coverageAnalysis: "perTest"`.
   - Se ejecuta con `npm run mutation` (`cross-env NODE_OPTIONS=--experimental-vm-modules stryker run`).
+  - **Regla de ejecución**: NO ejecutar `npm run mutation` de forma automática en cada cambio o iteración porque demora varios minutos. Para validar cambios habituales ejecutar únicamente `npm test` (Jest), y correr `npm run mutation` solo cuando el usuario lo pida explícitamente.
   - Los tests de `tests/domain/` deben diseñarse para matar los mutantes generados en las entidades de dominio (validaciones de constructor, transiciones de estado, cálculos de cupo, rangos de precio, etc.).
 
 ---

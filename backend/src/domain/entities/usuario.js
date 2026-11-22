@@ -2,7 +2,14 @@ import { DomainValidationError } from "../errors/DomainError.js";
 import { generarId } from "../utils/idGenerator.js";
 
 export class Usuario {
-  constructor({ id = generarId(), nombre, apellido, favoritos = [] } = {}) {
+  constructor({
+    id = generarId(),
+    nombre,
+    apellido,
+    email = null,
+    passwordHash = null,
+    favoritos = [],
+  } = {}) {
     if (
       typeof nombre !== "string" ||
       nombre.trim() === "" ||
@@ -14,6 +21,8 @@ export class Usuario {
     this.id = id;
     this.nombre = nombre.trim();
     this.apellido = apellido.trim();
+    this.email = email;
+    this.passwordHash = passwordHash;
     this.favoritos = favoritos;
   }
 
@@ -39,6 +48,7 @@ export class Usuario {
       id: this.id,
       nombre: this.nombre,
       apellido: this.apellido,
+      email: this.email,
       favoritosIds: this.favoritos.map((evento) => evento.id),
     };
   }

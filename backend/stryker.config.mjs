@@ -6,8 +6,8 @@ export default {
   jest: {
     config: {
       testMatch: [
-        "<rootDir>/tests/domain/**/*.test.js",
-        "<rootDir>/tests/services/**/*.test.js",
+        "**/tests/domain/**/*.test.js",
+        "**/tests/services/**/*.test.js",
       ],
     },
   },

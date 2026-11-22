@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./src/config/env.js";
 import { createApp } from "./src/app.js";
 import { seedDemo } from "./data/seeders/demoSeeder.js";
 

@@ -47,6 +47,8 @@ export const EstadoCompra = Object.freeze({
   - `id: Number (Int autoincremental: 1, 2, 3...)`
   - `nombre: String`
   - `apellido: String`
+  - `email: String | null` (opcional, default `null`)
+  - `passwordHash: String | null` (opcional, default `null`)
   - `favoritos: Evento[]` (default `[]`)
 - **Invariantes de Constructor**:
   - Si `!nombre || typeof nombre !== "string" || !nombre.trim()` → `DomainValidationError("El nombre del usuario es obligatorio")`.
@@ -55,6 +57,7 @@ export const EstadoCompra = Object.freeze({
   - `agregarFavorito(evento)`: Agrega `evento` a `this.favoritos` si no estaba ya incluido (comparando por `id`). Si `!evento` lanza `DomainValidationError`.
   - `quitarFavorito(eventoId)`: Filtra `this.favoritos` removiendo el evento con ese `id`.
   - `esFavorito(eventoId): Boolean`: Retorna `true` si el evento está en `this.favoritos`.
+  - `toJSON()`: Retorna `{ id, nombre, apellido, email, favoritosIds }`, omitiendo siempre `passwordHash` por seguridad.
 
 ---
 

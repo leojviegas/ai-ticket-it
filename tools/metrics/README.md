@@ -7,8 +7,10 @@ Herramienta standalone (sin dependencias externas ni hooks adicionales) que lee 
 Desde la raíz del repositorio:
 
 ```bash
-node tools/metrics/server.mjs
+npm run metrics
 ```
+
+(Equivalente a `node tools/metrics/server.mjs`.)
 
 - Intenta iniciar en `127.0.0.1:80` para quedar disponible en `http://localhost/metrics`.
 - Si el puerto `80` está ocupado o restringido por el sistema operativo, hace fallback automático al puerto `4321` (`http://localhost:4321/metrics`).

@@ -13,13 +13,37 @@ describe("Usuario", () => {
 
     expect(u1.id).toBe(1);
     expect(u2.id).toBe(2);
+    expect(u1.email).toBeNull();
+    expect(u1.passwordHash).toBeNull();
     expect(u1.favoritos).toEqual([]);
     expect(u1.toJSON()).toEqual({
       id: 1,
       nombre: "Ana",
       apellido: "Gómez",
+      email: null,
       favoritosIds: [],
     });
+  });
+
+  test("permite asignar email y passwordHash sin exponer passwordHash en toJSON", () => {
+    const usuario = new Usuario({
+      nombre: "Carlos",
+      apellido: "Ruiz",
+      email: "carlos@example.com",
+      passwordHash: "$2b$10$hashficticio",
+    });
+
+    expect(usuario.email).toBe("carlos@example.com");
+    expect(usuario.passwordHash).toBe("$2b$10$hashficticio");
+    const json = usuario.toJSON();
+    expect(json).toEqual({
+      id: 1,
+      nombre: "Carlos",
+      apellido: "Ruiz",
+      email: "carlos@example.com",
+      favoritosIds: [],
+    });
+    expect(json.passwordHash).toBeUndefined();
   });
 
   test("lanza DomainValidationError si falta nombre o apellido", () => {
