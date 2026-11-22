@@ -293,4 +293,62 @@ describe("API REST Integration (Express)", () => {
       expect(res.status).toBe(400);
     }
   });
+
+  test("flujo HTTP de autenticación: POST /api/auth/register y POST /api/auth/login", async () => {
+    const registro = await request(server, "POST", "/api/auth/register", {
+      nombre: "Camila",
+      apellido: "Vega",
+      email: "Camila@Example.com",
+      password: "Password123",
+    });
+    expect(registro.status).toBe(201);
+    expect(registro.body.accessToken).toEqual(expect.any(String));
+    expect(registro.body.usuario).toMatchObject({
+      nombre: "Camila",
+      apellido: "Vega",
+      email: "camila@example.com",
+    });
+    expect(registro.body.usuario.passwordHash).toBeUndefined();
+
+    // Email duplicado -> 409
+    const registroDuplicado = await request(server, "POST", "/api/auth/register", {
+      nombre: "Camila",
+      apellido: "Vega",
+      email: "camila@example.com",
+      password: "Password123",
+    });
+    expect(registroDuplicado.status).toBe(409);
+
+    // Registro inválido -> 400
+    const registroInvalido = await request(server, "POST", "/api/auth/register", {
+      nombre: "",
+      apellido: "Vega",
+      email: "no-es-email",
+      password: "123",
+    });
+    expect(registroInvalido.status).toBe(400);
+
+    // Login válido -> 200
+    const loginOk = await request(server, "POST", "/api/auth/login", {
+      email: "camila@example.com",
+      password: "Password123",
+    });
+    expect(loginOk.status).toBe(200);
+    expect(loginOk.body.accessToken).toEqual(expect.any(String));
+    expect(loginOk.body.usuario.email).toBe("camila@example.com");
+
+    // Login con contraseña incorrecta -> 401
+    const loginMal = await request(server, "POST", "/api/auth/login", {
+      email: "camila@example.com",
+      password: "otraPassword",
+    });
+    expect(loginMal.status).toBe(401);
+
+    // Login con campos vacíos -> 400
+    const loginVacio = await request(server, "POST", "/api/auth/login", {
+      email: "",
+      password: "",
+    });
+    expect(loginVacio.status).toBe(400);
+  });
 });

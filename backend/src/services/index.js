@@ -10,8 +10,10 @@ import { ReseniaService } from "./ReseniaService.js";
 import { UsuarioService } from "./UsuarioService.js";
 import { EventoService } from "./EventoService.js";
 import { CompraService } from "./CompraService.js";
+import { AuthService } from "./AuthService.js";
 
 export const categoriaService = new CategoriaService(categoriaRepository);
+export const authService = new AuthService({ usuarioRepository });
 export const reseniaService = new ReseniaService({
   reseniaRepository,
   compraRepository,

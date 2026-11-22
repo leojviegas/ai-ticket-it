@@ -43,9 +43,11 @@ Cuando escribas tests con Jest para `src/domain/entities/**/*.js`, asegúrate de
    ```bash
    npm test
    ```
-2. Ejecutar Stryker Mutation Testing en `backend/`:
+2. **Stryker Mutation Testing (solo bajo pedido explícito del usuario)**:
+   - **No ejecutar `npm run mutation` automáticamente** tras cada edición para no ralentizar el flujo de trabajo.
+   - Ejecutarlo únicamente cuando el usuario lo solicite de forma explícita:
    ```bash
    npm run mutation
    ```
-3. Analizar el reporte en consola (`clear-text`) y en `backend/reports/mutation/mutation.html` para eliminar cualquier mutante sobreviviente.
+3. Cuando se ejecute Stryker, analizar el reporte en consola (`clear-text`) y en `backend/reports/mutation/mutation.html` para eliminar cualquier mutante sobreviviente.
 

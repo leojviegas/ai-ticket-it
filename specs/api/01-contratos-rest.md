@@ -5,6 +5,8 @@
 | Método | Ruta | Descripción | Casos de Uso |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/health` | Estado de salud del servidor en memoria | Infraestructura |
+| `POST` | `/api/auth/register` | Registrar una cuenta de usuario (hashea contraseña con `bcryptjs` y devuelve `accessToken` JWT y usuario) | Cuentas / Sesión |
+| `POST` | `/api/auth/login` | Iniciar sesión validando credenciales y devolviendo `accessToken` JWT y usuario | Cuentas / Sesión |
 | `GET` | `/api/usuarios` | Lista de usuarios precargados (para el selector Comprador/Organizador) | Soporte Demo / Roles |
 | `GET` | `/api/usuarios/:id` | Detalle de un usuario y sus eventos favoritos | Favoritos |
 | `POST` | `/api/usuarios/:id/favoritos` | Agregar o quitar un evento de favoritos (`{ eventoId }`) | Contexto General |

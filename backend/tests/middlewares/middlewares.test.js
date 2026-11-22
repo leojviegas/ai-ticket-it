@@ -1,20 +1,11 @@
 import { jest } from "@jest/globals";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
 import { notFoundHandler } from "../../src/middlewares/notFoundHandler.js";
 import { errorHandler } from "../../src/middlewares/errorHandler.js";
-import {
-  register,
-  login,
-  requireAuth,
-  verificarAccessToken,
-} from "../../src/middlewares/authMiddleware.js";
-import { Usuario } from "../../src/domain/index.js";
+import { requireAuth } from "../../src/middlewares/authMiddleware.js";
+import { authService } from "../../src/services/index.js";
 import { resetContadoresId } from "../../src/domain/utils/idGenerator.js";
-import {
-  clearAllRepositories,
-  usuarioRepository,
-} from "../../src/repositories/index.js";
+import { clearAllRepositories } from "../../src/repositories/index.js";
 import { RequestValidationError } from "../../src/controllers/errors/ControllerError.js";
 import {
   DomainValidationError,
@@ -115,213 +106,54 @@ describe("Middlewares (errorHandler y notFoundHandler)", () => {
   });
 });
 
-describe("Middleware de autenticación (authMiddleware)", () => {
+describe("Middleware de autenticación (requireAuth)", () => {
   beforeEach(() => {
     clearAllRepositories();
     resetContadoresId();
   });
 
-  test("register crea un usuario con passwordHash bcrypt, responde 201 y devuelve accessToken sin exponer el hash", async () => {
-    const req = {
-      body: {
-        nombre: "Lucía",
-        apellido: "Fernández",
-        email: "  Lucia@Example.com ",
-        password: "Password123",
-      },
-    };
+  test("requireAuth valida la firma del Bearer token, pobla req.user y llama a next()", async () => {
+    const { accessToken } = await authService.register({
+      nombre: "Sofía",
+      apellido: "Martínez",
+      email: "sofia@example.com",
+      password: "Password123",
+    });
+
+    const req = { headers: { authorization: `Bearer ${accessToken}` } };
     const res = createMockRes();
     const next = jest.fn();
 
-    await register(req, res, next);
+    requireAuth(req, res, next);
 
-    expect(next).not.toHaveBeenCalled();
-    expect(res.statusCode).toBe(201);
-    expect(res.body.accessToken).toEqual(expect.any(String));
-    expect(res.body.usuario).toEqual({
-      id: 1,
-      nombre: "Lucía",
-      apellido: "Fernández",
-      email: "lucia@example.com",
-      favoritosIds: [],
-    });
-    expect(res.body.usuario.passwordHash).toBeUndefined();
-    expect(req.user).toEqual(res.body.usuario);
-
-    const guardado = usuarioRepository.findByEmail("lucia@example.com");
-    expect(guardado).not.toBeNull();
-    expect(guardado.passwordHash).not.toBe("Password123");
-    expect(await bcrypt.compare("Password123", guardado.passwordHash)).toBe(true);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(req.user.id).toBe(1);
+    expect(req.user.email).toBe("sofia@example.com");
   });
 
-  test("register deriva a next ConflictError (409) si el email ya existe y RequestValidationError (400) si faltan datos o son inválidos", async () => {
-    const reqValido = {
-      body: {
-        nombre: "Lucía",
-        apellido: "Fernández",
-        email: "lucia@example.com",
-        password: "Password123",
-      },
-    };
-    await register(reqValido, createMockRes(), jest.fn());
-
-    const nextDup = jest.fn();
-    await register(
-      {
-        body: {
-          nombre: "Otra",
-          apellido: "Persona",
-          email: "LUCIA@example.com",
-          password: "Password123",
-        },
-      },
-      createMockRes(),
-      nextDup
-    );
-    expect(nextDup).toHaveBeenCalledWith(expect.any(ConflictError));
-
-    const nextInvalido = jest.fn();
-    await register(
-      {
-        body: {
-          nombre: "",
-          apellido: "Pérez",
-          email: "email-invalido",
-          password: "123",
-        },
-      },
-      createMockRes(),
-      nextInvalido
-    );
-    expect(nextInvalido).toHaveBeenCalledWith(expect.any(RequestValidationError));
-  });
-
-  test("login valida credenciales, devuelve 200 con accessToken verificable y rechaza credenciales inválidas o faltantes", async () => {
-    await register(
-      {
-        body: {
-          nombre: "Mateo",
-          apellido: "Rossi",
-          email: "mateo@example.com",
-          password: "miClaveSegura",
-        },
-      },
-      createMockRes(),
-      jest.fn()
-    );
-
-    const reqLogin = {
-      body: {
-        email: "  MATEO@example.com ",
-        password: "miClaveSegura",
-      },
-    };
-    const resLogin = createMockRes();
-    const nextLogin = jest.fn();
-
-    await login(reqLogin, resLogin, nextLogin);
-
-    expect(nextLogin).not.toHaveBeenCalled();
-    expect(resLogin.statusCode).toBe(200);
-    expect(resLogin.body.usuario).toEqual({
-      id: 1,
-      nombre: "Mateo",
-      apellido: "Rossi",
-      email: "mateo@example.com",
-      favoritosIds: [],
-    });
-    expect(resLogin.body.usuario.passwordHash).toBeUndefined();
-
-    const payload = verificarAccessToken(resLogin.body.accessToken);
-    expect(payload.id).toBe(1);
-    expect(payload.email).toBe("mateo@example.com");
-
-    // Contraseña incorrecta -> 401
-    const nextBadPass = jest.fn();
-    await login(
-      { body: { email: "mateo@example.com", password: "incorrecta" } },
-      createMockRes(),
-      nextBadPass
-    );
-    expect(nextBadPass).toHaveBeenCalledTimes(1);
-    expect(nextBadPass.mock.calls[0][0].status).toBe(401);
-
-    // Email inexistente -> 401
-    const nextUnknown = jest.fn();
-    await login(
-      { body: { email: "noexiste@example.com", password: "miClaveSegura" } },
-      createMockRes(),
-      nextUnknown
-    );
-    expect(nextUnknown).toHaveBeenCalledTimes(1);
-    expect(nextUnknown.mock.calls[0][0].status).toBe(401);
-
-    // Usuario sin passwordHash -> 401
-    usuarioRepository.save(
-      new Usuario({ id: 2, nombre: "Sin", apellido: "Clave", email: "sinclave@example.com" })
-    );
-    const nextSinHash = jest.fn();
-    await login(
-      { body: { email: "sinclave@example.com", password: "cualquiera" } },
-      createMockRes(),
-      nextSinHash
-    );
-    expect(nextSinHash.mock.calls[0][0].status).toBe(401);
-
-    // Campos faltantes -> 400 RequestValidationError
-    const nextEmpty = jest.fn();
-    await login({ body: { email: "", password: "" } }, createMockRes(), nextEmpty);
-    expect(nextEmpty).toHaveBeenCalledWith(expect.any(RequestValidationError));
-  });
-
-  test("requireAuth valida la firma del Bearer token, pobla req.user y rechaza tokens faltantes o inválidos", async () => {
-    const resReg = createMockRes();
-    await register(
-      {
-        body: {
-          nombre: "Sofía",
-          apellido: "Martínez",
-          email: "sofia@example.com",
-          password: "Password123",
-        },
-      },
-      resReg,
-      jest.fn()
-    );
-    const token = resReg.body.accessToken;
-
-    // Caso válido
-    const reqValido = { headers: { authorization: `Bearer ${token}` } };
-    const resValido = createMockRes();
-    const nextValido = jest.fn();
-
-    requireAuth(reqValido, resValido, nextValido);
-
-    expect(nextValido).toHaveBeenCalledTimes(1);
-    expect(reqValido.user.id).toBe(1);
-    expect(reqValido.user.email).toBe("sofia@example.com");
-
-    // Sin header Authorization
+  test("requireAuth responde 401 ante ausencia de token, formato incorrecto o firma inválida", () => {
     const resSinHeader = createMockRes();
     const nextSinHeader = jest.fn();
     requireAuth({ headers: {} }, resSinHeader, nextSinHeader);
     expect(nextSinHeader).not.toHaveBeenCalled();
     expect(resSinHeader.statusCode).toBe(401);
 
-    // Formato sin Bearer o vacío
     const resMalFormato = createMockRes();
-    requireAuth({ headers: { authorization: token } }, resMalFormato, jest.fn());
+    requireAuth({ headers: { authorization: "token-sin-bearer" } }, resMalFormato, jest.fn());
     expect(resMalFormato.statusCode).toBe(401);
 
     const resBearerVacio = createMockRes();
     requireAuth({ headers: { authorization: "Bearer   " } }, resBearerVacio, jest.fn());
     expect(resBearerVacio.statusCode).toBe(401);
 
-    // Token adulterado / firmado con otro secreto
     const tokenOtraClave = jwt.sign({ id: 1 }, "otro-secreto");
     const resTokenMalo = createMockRes();
     const nextTokenMalo = jest.fn();
-    requireAuth({ headers: { authorization: `Bearer ${tokenOtraClave}` } }, resTokenMalo, nextTokenMalo);
+    requireAuth(
+      { headers: { authorization: `Bearer ${tokenOtraClave}` } },
+      resTokenMalo,
+      nextTokenMalo
+    );
     expect(nextTokenMalo).not.toHaveBeenCalled();
     expect(resTokenMalo.statusCode).toBe(401);
     expect(resTokenMalo.body).toEqual({ error: "Token inválido o expirado" });
