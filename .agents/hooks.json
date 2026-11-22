@@ -1,0 +1,12 @@
+{
+  "dudas-check-reminder": {
+    "enabled": true,
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./hooks/spec-reminder.js",
+        "timeout": 5
+      }
+    ]
+  }
+}

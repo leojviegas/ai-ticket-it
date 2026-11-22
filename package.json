@@ -1,0 +1,13 @@
+{
+  "name": "ai-ticket-it",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix backend start",
+    "start:watch": "npm --prefix backend run start:watch",
+    "dev": "npm --prefix backend run dev",
+    "backend": "npm --prefix backend start",
+    "backend:watch": "npm --prefix backend run start:watch",
+    "metrics": "node tools/metrics/server.mjs"
+  }
+}
