@@ -25,4 +25,13 @@ export class AuthController {
       next(error);
     }
   };
+
+  me = (req, res, next) => {
+    try {
+      const usuario = this.authService.obtenerUsuarioActual(req.user.id);
+      res.status(200).json(usuario);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

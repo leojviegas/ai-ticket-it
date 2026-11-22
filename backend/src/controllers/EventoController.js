@@ -4,6 +4,7 @@ import {
   listarEventosQuerySchema,
   obtenerComprasEventoQuerySchema,
 } from "../schemas/eventoSchemas.js";
+import { ForbiddenError } from "../services/errors/ServiceError.js";
 
 export class EventoController {
   constructor(eventoService) {
@@ -24,14 +25,24 @@ export class EventoController {
 
   crear = (req, res) => {
     const datos = validateSchema(crearEventoSchema, req.body);
-    const evento = this.eventoService.crearEvento(datos);
+    if (datos.organizadorId !== undefined && req.user && datos.organizadorId !== req.user.id) {
+      throw new ForbiddenError("No tienes permiso para crear eventos en nombre de otro usuario");
+    }
+    const organizadorId = req.user ? req.user.id : datos.organizadorId;
+    const evento = this.eventoService.crearEvento({ ...datos, organizadorId });
     res.status(201).json(evento);
   };
 
   obtenerComprasYDisponibilidad = (req, res) => {
     const id = validateIdParam(req.params);
     const filtros = validateSchema(obtenerComprasEventoQuerySchema, req.query);
-    const resultado = this.eventoService.obtenerComprasYDisponibilidad(id, filtros);
+    if (filtros.organizadorId !== undefined && req.user && filtros.organizadorId !== req.user.id) {
+      throw new ForbiddenError(
+        "No tienes permiso para consultar compras en nombre de otro organizador"
+      );
+    }
+    const organizadorId = req.user ? req.user.id : filtros.organizadorId;
+    const resultado = this.eventoService.obtenerComprasYDisponibilidad(id, { organizadorId });
     res.json(resultado);
   };
 }
