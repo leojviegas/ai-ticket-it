@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -13,7 +13,9 @@ import {
 import { AppIcon } from "@/components/app-icon";
 import { EmptyView, ErrorView, LoadingView } from "@/components/screen-state";
 import { StatusBadge } from "@/components/status-badge";
+import { useAuth } from "@/context/auth-context";
 import { usePreferences } from "@/context/preferences-context";
+import { ApiError } from "@/services/api";
 import { compraService } from "@/services/compra-service";
 import { eventoService } from "@/services/evento-service";
 import { radius, shadows, spacing } from "@/theme";
@@ -39,6 +41,7 @@ const ESTADOS_FILTRO: EstadoFilter[] = [
 export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
   const router = useRouter();
   const { colors, theme } = usePreferences();
+  const { user, isHydrated, redirectToLogin } = useAuth();
 
   const [panel, setPanel] = useState<PanelEventoResponse | null>(null);
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFilter>("TODOS");
@@ -48,12 +51,23 @@ export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
+
+  useEffect(() => {
+    hasLoadedRef.current = false;
+  }, [eventoId]);
+
+  useEffect(() => {
+    if (isHydrated && !user) {
+      redirectToLogin();
+    }
+  }, [isHydrated, user, redirectToLogin]);
 
   const cargarPanel = useCallback(
     async (isRefresh = false) => {
       if (isRefresh) {
         setRefreshing(true);
-      } else if (!panel) {
+      } else if (!hasLoadedRef.current) {
         setLoading(true);
       }
       setError(null);
@@ -62,18 +76,23 @@ export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
           eventoId,
           estadoFiltro === "TODOS" ? undefined : estadoFiltro
         );
+        hasLoadedRef.current = true;
         setPanel(data);
         setSelectedIds((prev) =>
           prev.filter((id) => data.compras.some((c) => c.id === id))
         );
       } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          redirectToLogin();
+          return;
+        }
         setError(extractErrorMessage(err));
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [eventoId, estadoFiltro, panel]
+    [eventoId, estadoFiltro, redirectToLogin]
   );
 
   useFocusEffect(
@@ -97,18 +116,21 @@ export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
   };
 
   const runBatchAction = async (
-    actionType: "CONFIRMAR" | "UTILIZAR" | "REEMBOLSAR" | "CANCELAR"
+    actionType: "CONFIRMAR" | "REEMBOLSAR" | "CANCELAR"
   ) => {
     if (selectedCompras.length === 0) {
       return;
     }
 
     const targets: Compra[] = selectedCompras.filter((c) => {
-      if (actionType === "CONFIRMAR" || actionType === "CANCELAR") {
+      if (actionType === "CONFIRMAR") {
         return c.estado === EstadoCompra.PENDIENTE;
       }
-      if (actionType === "UTILIZAR") {
-        return c.estado === EstadoCompra.CONFIRMADA;
+      if (actionType === "CANCELAR") {
+        return (
+          !panel?.evento.yaOcurrio &&
+          (c.estado === EstadoCompra.PENDIENTE || c.estado === EstadoCompra.CONFIRMADA)
+        );
       }
       if (actionType === "REEMBOLSAR") {
         return c.estado === EstadoCompra.CANCELADA;
@@ -128,8 +150,6 @@ export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
       try {
         if (actionType === "CONFIRMAR") {
           await compraService.actualizarEstado(c.id, EstadoCompra.CONFIRMADA);
-        } else if (actionType === "UTILIZAR") {
-          await compraService.actualizarEstado(c.id, EstadoCompra.UTILIZADA);
         } else if (actionType === "REEMBOLSAR") {
           await compraService.reembolsar(c.id);
         } else if (actionType === "CANCELAR") {
@@ -164,8 +184,13 @@ export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
   }
 
   const hasPendientes = selectedCompras.some((c) => c.estado === EstadoCompra.PENDIENTE);
-  const hasConfirmadas = selectedCompras.some((c) => c.estado === EstadoCompra.CONFIRMADA);
+  const hasCancelables =
+    !panel.evento.yaOcurrio &&
+    selectedCompras.some(
+      (c) => c.estado === EstadoCompra.PENDIENTE || c.estado === EstadoCompra.CONFIRMADA
+    );
   const hasCanceladas = selectedCompras.some((c) => c.estado === EstadoCompra.CANCELADA);
+  const hasActions = hasPendientes || hasCancelables || hasCanceladas;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -291,6 +316,8 @@ export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
           const checked = selectedIds.includes(item.id);
           return (
             <Pressable
+              key={item.id}
+              testID={`gestion-compra-${item.id}`}
               onPress={() => toggleSelect(item.id)}
               style={[
                 styles.compraRow,
@@ -376,6 +403,7 @@ export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
             >
               {hasPendientes ? (
                 <Pressable
+                  testID="batch-confirm-btn"
                   onPress={() => void runBatchAction("CONFIRMAR")}
                   style={[
                     styles.batchBtn,
@@ -393,27 +421,9 @@ export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
                 </Pressable>
               ) : null}
 
-              {hasConfirmadas ? (
-                <Pressable
-                  onPress={() => void runBatchAction("UTILIZAR")}
-                  style={[
-                    styles.batchBtn,
-                    { backgroundColor: colors.status.UTILIZADA.bg },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.batchBtnText,
-                      { color: colors.status.UTILIZADA.fg },
-                    ]}
-                  >
-                    Marcar utilizada
-                  </Text>
-                </Pressable>
-              ) : null}
-
               {hasCanceladas ? (
                 <Pressable
+                  testID="batch-refund-btn"
                   onPress={() => void runBatchAction("REEMBOLSAR")}
                   style={[
                     styles.batchBtn,
@@ -431,8 +441,9 @@ export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
                 </Pressable>
               ) : null}
 
-              {hasPendientes ? (
+              {hasCancelables ? (
                 <Pressable
+                  testID="batch-cancel-btn"
                   onPress={() => void runBatchAction("CANCELAR")}
                   style={[
                     styles.batchBtn,
@@ -448,6 +459,12 @@ export function GestionEventoScreen({ eventoId }: { eventoId: number }) {
                     Cancelar
                   </Text>
                 </Pressable>
+              ) : null}
+
+              {!hasActions ? (
+                <Text style={[styles.noActionsText, { color: colors.muted }]}>
+                  Sin acciones disponibles
+                </Text>
               ) : null}
             </ScrollView>
           )}
@@ -545,4 +562,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   batchBtnText: { fontSize: 12, fontWeight: "800" },
+  noActionsText: { fontSize: 12, fontWeight: "600", paddingHorizontal: 4 },
 });

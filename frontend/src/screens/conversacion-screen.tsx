@@ -3,13 +3,15 @@ import { File, Paths } from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
+  type LayoutChangeEvent,
   Platform,
   Pressable,
   StyleSheet,
@@ -25,6 +27,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { useAuth } from "@/context/auth-context";
 import { useMessaging } from "@/context/messaging-context";
 import { usePreferences } from "@/context/preferences-context";
+import { ApiError } from "@/services/api";
 import { compraService } from "@/services/compra-service";
 import { mensajeService } from "@/services/mensaje-service";
 import { radius, shadows, spacing } from "@/theme";
@@ -78,8 +81,9 @@ function decodeBase64ToBytes(base64Data: string): Uint8Array {
 }
 
 export function ConversacionScreen({ compraId }: { compraId: number }) {
+  const router = useRouter();
   const { colors, theme } = usePreferences();
-  const { user } = useAuth();
+  const { user, isHydrated, redirectToLogin } = useAuth();
   const { markInboxAsRead, refreshConversations } = useMessaging();
   const insets = useSafeAreaInsets();
 
@@ -95,10 +99,76 @@ export function ConversacionScreen({ compraId }: { compraId: number }) {
 
   const [attachSheetOpen, setAttachSheetOpen] = useState(false);
   const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [androidKeyboardPadding, setAndroidKeyboardPadding] = useState(0);
 
   const listRef = useRef<FlatList<Mensaje>>(null);
+  const rootHeightRef = useRef(0);
+  const maxRootHeightRef = useRef(0);
+  const keyboardHeightRef = useRef(0);
+
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      return;
+    }
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardOpen(true);
+      const kbHeight = e.endCoordinates?.height ?? 0;
+      keyboardHeightRef.current = kbHeight;
+
+      if (Platform.OS === "android") {
+        // En Edge-to-Edge (Expo Go Android 15+) el sistema puede no achicar la ventana:
+        // solo sumamos padding si la altura del contenedor no se redujo al menos 100px.
+        const shrunkByOs = maxRootHeightRef.current - rootHeightRef.current >= 100;
+        setAndroidKeyboardPadding(shrunkByOs ? 0 : kbHeight);
+      }
+
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 80);
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      keyboardHeightRef.current = 0;
+      setKeyboardOpen(false);
+      setAndroidKeyboardPadding(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const handleRootLayout = (e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    rootHeightRef.current = h;
+    if (h > maxRootHeightRef.current) {
+      maxRootHeightRef.current = h;
+    }
+    if (Platform.OS === "android" && keyboardHeightRef.current > 0) {
+      const shrunkByOs = maxRootHeightRef.current - h >= 100;
+      if (shrunkByOs) {
+        setAndroidKeyboardPadding(0);
+      }
+    }
+  };
+
+  const userId = user?.id ?? null;
+
+  useEffect(() => {
+    if (isHydrated && !userId) {
+      redirectToLogin();
+    }
+  }, [isHydrated, userId, redirectToLogin]);
 
   const cargarInicial = useCallback(async () => {
+    if (isHydrated && !userId) {
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -106,11 +176,15 @@ export function ConversacionScreen({ compraId }: { compraId: number }) {
       setCompra(data);
       setMensajes(data.mensajes);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        redirectToLogin();
+        return;
+      }
       setError(extractErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [compraId]);
+  }, [compraId, isHydrated, userId, redirectToLogin]);
 
   const refrescarMensajes = useCallback(async () => {
     try {
@@ -267,28 +341,54 @@ export function ConversacionScreen({ compraId }: { compraId: number }) {
   const contraparte =
     user?.id === compra.comprador.id ? compra.evento.organizador : compra.comprador;
 
+  const isOrganizer = user?.id === compra.evento.organizador.id;
+
   return (
     <KeyboardAvoidingView
-      style={[styles.root, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      onLayout={handleRootLayout}
+      style={[
+        styles.root,
+        { backgroundColor: colors.background },
+        Platform.OS === "android" && androidKeyboardPadding > 0
+          ? { paddingBottom: androidKeyboardPadding }
+          : null,
+      ]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 56 : 0}
     >
-      <View style={[styles.topStrip, { backgroundColor: colors.soft }]}>
+      <Pressable
+        testID="chat-event-banner"
+        onPress={() =>
+          router.push(
+            isOrganizer ? `/gestionar-evento/${compra.evento.id}` : `/evento/${compra.evento.id}`
+          )
+        }
+        style={({ pressed }) => [
+          styles.topStrip,
+          { backgroundColor: colors.soft, opacity: pressed ? 0.85 : 1 },
+        ]}
+      >
         <View style={styles.topStripLeft}>
           <Text style={[styles.stripTitle, { color: colors.text }]} numberOfLines={1}>
             {compra.evento.nombre} · {contraparte.nombre} {contraparte.apellido}
           </Text>
           <Text style={[styles.stripSub, { color: colors.muted }]}>
             {compra.cantidad}x {compra.tipoEntrada.nombre}
+            {isOrganizer ? " · Tocar para gestionar" : " · Ver evento"}
           </Text>
         </View>
-        <StatusBadge estado={compra.estado} />
-      </View>
+        <View style={styles.topStripRight}>
+          <StatusBadge estado={compra.estado} />
+          <AppIcon name="chevron" size={16} color={colors.muted} />
+        </View>
+      </Pressable>
 
       <FlatList
         ref={listRef}
         data={mensajes}
         keyExtractor={(item) => String(item.id)}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         contentContainerStyle={styles.messagesList}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
         renderItem={({ item }) => {
@@ -429,11 +529,14 @@ export function ConversacionScreen({ compraId }: { compraId: number }) {
           {
             backgroundColor: colors.surface,
             borderTopColor: colors.hairline,
-            paddingBottom: Math.max(insets.bottom, spacing.sm),
+            paddingBottom: keyboardOpen
+              ? spacing.sm
+              : Math.max(insets.bottom, spacing.sm),
           },
         ]}
       >
         <Pressable
+          testID="chat-attach-btn"
           onPress={() => setAttachSheetOpen(true)}
           accessibilityLabel="Adjuntar comprobante"
           style={[styles.iconBtn, { backgroundColor: colors.surfaceSecondary }]}
@@ -442,6 +545,7 @@ export function ConversacionScreen({ compraId }: { compraId: number }) {
         </Pressable>
 
         <TextInput
+          testID="chat-input"
           value={texto}
           onChangeText={setTexto}
           placeholder="Escribir mensaje..."
@@ -454,6 +558,7 @@ export function ConversacionScreen({ compraId }: { compraId: number }) {
         />
 
         <Pressable
+          testID="chat-send-btn"
           disabled={sending || (texto.trim() === "" && !adjuntoPendiente)}
           onPress={() => void handleSend()}
           accessibilityLabel="Enviar mensaje"
@@ -533,6 +638,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   topStripLeft: { flex: 1, gap: 2 },
+  topStripRight: { flexDirection: "row", alignItems: "center", gap: 6 },
   stripTitle: { fontSize: 13, fontWeight: "800" },
   stripSub: { fontSize: 11 },
   messagesList: {

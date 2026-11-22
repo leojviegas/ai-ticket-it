@@ -3,6 +3,7 @@ import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { AppIcon, type AppIconName } from "@/components/app-icon";
 import { usePreferences } from "@/context/preferences-context";
+import { SESSION_EXPIRED_MESSAGE } from "@/services/api";
 import { radius, shadows, spacing } from "@/theme";
 
 export function LoadingView({ message = "Cargando..." }: { message?: string }) {
@@ -18,29 +19,49 @@ export function LoadingView({ message = "Cargando..." }: { message?: string }) {
 export function ErrorView({
   message,
   onRetry,
+  isAuthError,
 }: {
   message: string;
   onRetry?: () => void;
+  isAuthError?: boolean;
 }) {
+  const router = useRouter();
   const { colors } = usePreferences();
+  const expired = Boolean(
+    isAuthError || message === SESSION_EXPIRED_MESSAGE || /token/i.test(message)
+  );
+  const displayMessage = expired ? SESSION_EXPIRED_MESSAGE : message;
+  const handlePress = expired
+    ? () => {
+        if (router.canDismiss()) {
+          router.dismissAll();
+        }
+        router.navigate("/(tabs)/perfil");
+      }
+    : onRetry;
+
   return (
     <View style={[styles.centerBox, { backgroundColor: colors.background }]}>
       <View style={[styles.iconCircle, { backgroundColor: colors.dangerBg }]}>
         <AppIcon name="close" size={28} color={colors.dangerFg} />
       </View>
-      <Text style={[styles.title, { color: colors.text }]}>No pudimos cargar los datos</Text>
-      <Text style={[styles.desc, { color: colors.muted }]} selectable>
-        {message}
+      <Text style={[styles.title, { color: colors.text }]}>
+        {expired ? "Tu sesión venció" : "No pudimos cargar los datos"}
       </Text>
-      {onRetry ? (
+      <Text style={[styles.desc, { color: colors.muted }]} selectable>
+        {displayMessage}
+      </Text>
+      {handlePress ? (
         <Pressable
-          onPress={onRetry}
+          onPress={handlePress}
           style={({ pressed }) => [
             styles.btn,
             { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
           ]}
         >
-          <Text style={[styles.btnText, { color: colors.primaryText }]}>Reintentar</Text>
+          <Text style={[styles.btnText, { color: colors.primaryText }]}>
+            {expired ? "Ir a Iniciar Sesión" : "Reintentar"}
+          </Text>
         </Pressable>
       ) : null}
     </View>
@@ -53,6 +74,7 @@ export function EmptyView({
   description,
   actionLabel,
   onAction,
+  actionTestID,
   secondaryNote,
 }: {
   icon?: AppIconName;
@@ -60,6 +82,7 @@ export function EmptyView({
   description: string;
   actionLabel?: string;
   onAction?: () => void;
+  actionTestID?: string;
   secondaryNote?: string;
 }) {
   const { colors, theme } = usePreferences();
@@ -72,6 +95,7 @@ export function EmptyView({
       <Text style={[styles.desc, { color: colors.muted }]}>{description}</Text>
       {actionLabel && onAction ? (
         <Pressable
+          testID={actionTestID}
           onPress={onAction}
           style={({ pressed }) => [
             styles.btn,

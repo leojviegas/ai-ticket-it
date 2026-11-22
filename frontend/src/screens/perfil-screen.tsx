@@ -1,5 +1,5 @@
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -18,7 +18,18 @@ import { extractErrorMessage, getInitials } from "@/utils/format";
 export function PerfilScreen() {
   const router = useRouter();
   const { colors, theme, defaultMyEventsView } = usePreferences();
-  const { user, login, register, logout } = useAuth();
+  const { user, sessionExpiredMessage, login, register, logout, verifySession } =
+    useAuth();
+
+  const userId = user?.id ?? null;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) {
+        void verifySession().catch(() => {});
+      }
+    }, [userId, verifySession])
+  );
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [nombre, setNombre] = useState("");
@@ -52,7 +63,7 @@ export function PerfilScreen() {
         });
       }
       setPassword("");
-      router.replace(defaultMyEventsView ? "/(tabs)/central" : "/(tabs)");
+      router.navigate(defaultMyEventsView ? "/(tabs)/central" : "/(tabs)");
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -79,6 +90,18 @@ export function PerfilScreen() {
           </Text>
         </View>
 
+        {sessionExpiredMessage ? (
+          <View
+            testID="session-expired-banner"
+            style={[styles.expiredBanner, { backgroundColor: colors.dangerBg }]}
+          >
+            <AppIcon name="clock" size={18} color={colors.dangerFg} />
+            <Text style={[styles.expiredBannerText, { color: colors.dangerFg }]}>
+              {sessionExpiredMessage}
+            </Text>
+          </View>
+        ) : null}
+
         <View
           style={[
             styles.segmented,
@@ -95,6 +118,7 @@ export function PerfilScreen() {
             return (
               <Pressable
                 key={k}
+                testID={`auth-mode-${k}`}
                 onPress={() => {
                   setMode(k);
                   setError(null);
@@ -133,6 +157,7 @@ export function PerfilScreen() {
             <>
               <View style={styles.inputRow}>
                 <TextInput
+                  testID="auth-nombre"
                   value={nombre}
                   onChangeText={setNombre}
                   placeholder="Nombre"
@@ -147,6 +172,7 @@ export function PerfilScreen() {
                 ]}
               >
                 <TextInput
+                  testID="auth-apellido"
                   value={apellido}
                   onChangeText={setApellido}
                   placeholder="Apellido"
@@ -167,6 +193,7 @@ export function PerfilScreen() {
             ]}
           >
             <TextInput
+              testID="auth-email"
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -184,6 +211,7 @@ export function PerfilScreen() {
             ]}
           >
             <TextInput
+              testID="auth-password"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -201,6 +229,7 @@ export function PerfilScreen() {
         ) : null}
 
         <Pressable
+          testID="auth-submit-btn"
           disabled={loading}
           onPress={() => void handleSubmit()}
           style={({ pressed }) => [
@@ -222,6 +251,7 @@ export function PerfilScreen() {
         </Pressable>
 
         <Pressable
+          testID="profile-options-btn"
           onPress={() => router.push("/opciones")}
           style={[
             styles.guestOptionsBtn,
@@ -279,6 +309,7 @@ export function PerfilScreen() {
         ]}
       >
         <Pressable
+          testID="profile-options-btn"
           onPress={() => router.push("/opciones")}
           style={({ pressed }) => [
             styles.menuRow,
@@ -297,6 +328,7 @@ export function PerfilScreen() {
         </Pressable>
 
         <Pressable
+          testID="profile-my-events-btn"
           onPress={() => router.push("/mis-eventos")}
           style={({ pressed }) => [
             styles.menuRow,
@@ -319,6 +351,7 @@ export function PerfilScreen() {
         </Pressable>
 
         <Pressable
+          testID="profile-my-compras-btn"
           onPress={() => router.push("/mis-compras")}
           style={({ pressed }) => [
             styles.menuRow,
@@ -342,6 +375,7 @@ export function PerfilScreen() {
       </View>
 
       <Pressable
+        testID="profile-logout-btn"
         onPress={() => void logout()}
         style={({ pressed }) => [
           styles.logoutBtn,
@@ -392,6 +426,21 @@ const styles = StyleSheet.create({
   inputRow: { paddingHorizontal: 14, paddingVertical: 12 },
   input: { fontSize: 15, paddingVertical: 2 },
   errorText: { fontSize: 12, fontWeight: "700" },
+  expiredBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: radius.lg,
+    borderCurve: "continuous",
+  },
+  expiredBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
   submitBtn: {
     paddingVertical: 15,
     borderRadius: radius.lg,

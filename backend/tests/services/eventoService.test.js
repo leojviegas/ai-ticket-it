@@ -1,5 +1,6 @@
 import { seedDemo } from "../../data/seeders/demoSeeder.js";
 import { eventoService } from "../../src/services/index.js";
+import { EstadoCompra } from "../../src/domain/index.js";
 import { BusinessRuleError } from "../../src/services/errors/ServiceError.js";
 
 describe("EventoService", () => {
@@ -155,5 +156,17 @@ describe("EventoService", () => {
     // Evento futuro 4 (de Lucas) sí incluye las reseñas anteriores en reseniasEventosAnterioresOrganizador
     const detalleFuturo = eventoService.obtenerEventoDetalle(4);
     expect(detalleFuturo.reseniasEventosAnterioresOrganizador).toHaveLength(2);
+  });
+
+  test("filtra las compras del panel del organizador por estado sin alterar la disponibilidad por tipo", () => {
+    // Evento 4 (Lucas 2) tiene compra 5 (CONFIRMADA, 2 General) y compra 7 (CANCELADA, 1 VIP)
+    const soloCanceladas = eventoService.obtenerComprasYDisponibilidad(4, {
+      organizadorId: 2,
+      estado: EstadoCompra.CANCELADA,
+    });
+    expect(soloCanceladas.compras).toHaveLength(1);
+    expect(soloCanceladas.compras[0].id).toBe(7);
+    expect(soloCanceladas.disponibilidadPorTipo[0].entradasVendidas).toBe(2);
+    expect(soloCanceladas.disponibilidadPorTipo[0].cupoDisponible).toBe(118);
   });
 });

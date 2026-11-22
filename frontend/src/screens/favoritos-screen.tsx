@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import { EventCard } from "@/components/event-card";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/components/screen-state";
 import { useAuth } from "@/context/auth-context";
 import { usePreferences } from "@/context/preferences-context";
+import { ApiError } from "@/services/api";
 import { usuarioService } from "@/services/usuario-service";
 import { spacing } from "@/theme";
 import type { Evento } from "@/types/api";
@@ -18,35 +19,49 @@ import { extractErrorMessage } from "@/utils/format";
 export function FavoritosScreen() {
   const router = useRouter();
   const { colors } = usePreferences();
-  const { user, favoritosIds, toggleFavorito } = useAuth();
+  const { user, favoritosIds, toggleFavorito, verifySession } = useAuth();
 
   const [favoritos, setFavoritos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const userId = user?.id ?? null;
+  const hasLoadedRef = useRef(false);
+
+  useEffect(() => {
+    hasLoadedRef.current = false;
+  }, [userId]);
 
   const cargarFavoritos = useCallback(
     async (isRefresh = false) => {
-      if (!user) {
+      if (!userId) {
         return;
       }
       if (isRefresh) {
         setRefreshing(true);
-      } else if (favoritos.length === 0) {
+      } else if (!hasLoadedRef.current) {
         setLoading(true);
       }
       setError(null);
       try {
-        const perfil = await usuarioService.obtenerPorId(user.id);
+        const valid = await verifySession();
+        if (!valid) {
+          return;
+        }
+        const perfil = await usuarioService.obtenerPorId(userId);
+        hasLoadedRef.current = true;
         setFavoritos(perfil.favoritos);
       } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          return;
+        }
         setError(extractErrorMessage(err));
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [user, favoritos.length]
+    [userId, verifySession]
   );
 
   useFocusEffect(

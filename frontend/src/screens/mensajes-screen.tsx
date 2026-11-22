@@ -90,7 +90,7 @@ export function MensajesScreen() {
               Sincronización automática cada 10s
             </Text>
             {hiddenCount > 0 ? (
-              <Pressable onPress={() => void restoreHiddenConversations()}>
+              <Pressable testID="restore-hidden-btn" onPress={() => void restoreHiddenConversations()}>
                 <Text style={[styles.restoreLink, { color: colors.primary }]}>
                   Restaurar ocultos ({hiddenCount})
                 </Text>
@@ -100,6 +100,7 @@ export function MensajesScreen() {
         }
         renderItem={({ item }) => (
           <Pressable
+            testID={`conv-item-${item.compraId}`}
             onPress={() => router.push(`/chat/${item.compraId}`)}
             style={({ pressed }) => [
               styles.convCard,
@@ -148,6 +149,7 @@ export function MensajesScreen() {
             </View>
 
             <Pressable
+              testID={`hide-conv-${item.compraId}`}
               onPress={(e) => {
                 e.stopPropagation();
                 void hideConversation(item.compraId, item.ultimoMensaje?.id ?? null);

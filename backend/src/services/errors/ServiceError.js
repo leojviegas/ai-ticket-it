@@ -11,3 +11,5 @@ export class NotFoundError extends ServiceError {}
 export class ConflictError extends ServiceError {}
 
 export class BusinessRuleError extends ServiceError {}
+
+export class ForbiddenError extends ServiceError {}

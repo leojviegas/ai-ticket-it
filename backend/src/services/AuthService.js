@@ -83,4 +83,12 @@ export class AuthService {
       usuario: usuario.toJSON(),
     };
   }
+
+  obtenerUsuarioActual(usuarioId) {
+    const usuario = this.usuarioRepository.findById(usuarioId);
+    if (!usuario) {
+      throw crearErrorNoAutorizado("La sesión ya no es válida");
+    }
+    return usuario.toJSON();
+  }
 }

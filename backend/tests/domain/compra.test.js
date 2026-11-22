@@ -242,7 +242,7 @@ describe("Compra", () => {
     expect(compra.calcularDiasParaEvento(new Date("2026-11-12T20:00:00.000Z"))).toBe(0);
   });
 
-  test("agregarMensaje permite chatear a comprador y organizador y rechaza a terceros", () => {
+  test("agregarMensaje permite chatear a comprador y organizador en ambos sentidos (con o sin adjunto) y rechaza a terceros", () => {
     const compra = new Compra({
       comprador,
       evento: eventoFuturo,
@@ -251,22 +251,129 @@ describe("Compra", () => {
     });
 
     const msgComprador = compra.agregarMensaje(comprador, "Hola, tengo una duda");
-    const msgOrganizador = compra.agregarMensaje(organizador, "Hola Sofía, decime");
+    const adjuntoPdf = {
+      nombre: "transferencia.pdf",
+      tipoMime: "application/pdf",
+      contenido: "data:application/pdf;base64,JVBERi0=",
+    };
+    const msgOrganizador = compra.agregarMensaje(
+      organizador,
+      "Hola Sofía, decime",
+      new Date("2026-11-02T10:00:00.000Z"),
+      adjuntoPdf
+    );
+    const msgSoloAdjunto = compra.agregarMensaje(comprador, "", new Date(), adjuntoPdf);
 
-    expect(compra.mensajes).toHaveLength(2);
+    expect(compra.mensajes).toHaveLength(3);
     expect(msgComprador.mensaje).toBe("Hola, tengo una duda");
-    expect(msgOrganizador.usuario).toBe(organizador);
+    expect(msgComprador.remitente).toBe(comprador);
+    expect(msgComprador.destinatario).toBe(organizador);
+    expect(msgOrganizador.remitente).toBe(organizador);
+    expect(msgOrganizador.destinatario).toBe(comprador);
+    expect(msgOrganizador.adjunto).toEqual(adjuntoPdf);
+    expect(msgSoloAdjunto.mensaje).toBe("");
+    expect(msgSoloAdjunto.adjunto).toEqual(adjuntoPdf);
 
     expect(() => compra.agregarMensaje(null, "Hola")).toThrow(
-      "El usuario emisor del mensaje es obligatorio"
+      "El usuario remitente del mensaje es obligatorio"
     );
     expect(() => compra.agregarMensaje(tercero, "Soy un intruso")).toThrow(
       "Solo el comprador o el organizador del evento pueden enviar mensajes en esta compra"
     );
 
     const json = compra.toJSON(new Date("2026-11-05T20:00:00.000Z"));
-    expect(json.mensajes).toEqual([msgComprador.toJSON(), msgOrganizador.toJSON()]);
+    expect(json.mensajes).toEqual([
+      msgComprador.toJSON(),
+      msgOrganizador.toJSON(),
+      msgSoloAdjunto.toJSON(),
+    ]);
     expect(json.cambiosEstado).toEqual([compra.cambiosEstado[0].toJSON()]);
+  });
+
+  test("sincronizarEstadoPorFecha pasa automáticamente CONFIRMADA a UTILIZADA cuando se alcanza evento.fecha y no altera otros estados", () => {
+    const compraConfirmada = new Compra({
+      comprador,
+      evento: eventoFuturo, // 2026-11-10T20:00:00.000Z
+      tipoEntrada,
+      cantidad: 1,
+      estado: EstadoCompra.CONFIRMADA,
+    });
+
+    // Antes de la fecha del evento no cambia
+    expect(
+      compraConfirmada.sincronizarEstadoPorFecha(new Date("2026-11-10T19:59:59.999Z"))
+    ).toBe(false);
+    expect(compraConfirmada.estado).toBe(EstadoCompra.CONFIRMADA);
+    expect(compraConfirmada.cambiosEstado).toHaveLength(1);
+
+    // En la fecha/hora exacta del evento pasa a UTILIZADA registrando fecha del evento y organizador
+    expect(
+      compraConfirmada.sincronizarEstadoPorFecha(new Date("2026-11-10T20:00:00.000Z"))
+    ).toBe(true);
+    expect(compraConfirmada.estado).toBe(EstadoCompra.UTILIZADA);
+    expect(compraConfirmada.cambiosEstado).toHaveLength(2);
+    expect(compraConfirmada.cambiosEstado[1].estado).toBe(EstadoCompra.UTILIZADA);
+    expect(compraConfirmada.cambiosEstado[1].quien).toBe(organizador);
+    expect(compraConfirmada.cambiosEstado[1].fechaHora).toEqual(eventoFuturo.fecha);
+
+    // Ya utilizada no vuelve a transicionar
+    expect(
+      compraConfirmada.sincronizarEstadoPorFecha(new Date("2026-11-12T20:00:00.000Z"))
+    ).toBe(false);
+
+    // Prueba sin argumento (usa new Date() actual): un evento futuro permanece CONFIRMADA y uno pasado pasa a UTILIZADA
+    expect(
+      new Compra({
+        comprador,
+        evento: new Evento({
+          nombre: "Evento Futuro Lejano",
+          descripcion: "Desc",
+          categoria,
+          fecha: new Date(Date.now() + 86400000),
+          tiposEntrada: [tipoEntrada],
+          organizador,
+        }),
+        tipoEntrada,
+        cantidad: 1,
+        estado: EstadoCompra.CONFIRMADA,
+      }).sincronizarEstadoPorFecha()
+    ).toBe(false);
+
+    const eventoPasado = new Evento({
+      nombre: "Evento Pasado",
+      descripcion: "Desc",
+      categoria,
+      fecha: new Date("2020-01-01T12:00:00.000Z"),
+      tiposEntrada: [tipoEntrada],
+      organizador,
+    });
+    const compraPasadaSinFecha = new Compra({
+      comprador,
+      evento: eventoPasado,
+      tipoEntrada,
+      cantidad: 1,
+      estado: EstadoCompra.CONFIRMADA,
+    });
+    expect(compraPasadaSinFecha.sincronizarEstadoPorFecha()).toBe(true);
+    expect(compraPasadaSinFecha.estado).toBe(EstadoCompra.UTILIZADA);
+
+    // Estados no confirmados permanecen sin cambios aunque el evento haya ocurrido
+    for (const estado of [
+      EstadoCompra.PENDIENTE,
+      EstadoCompra.UTILIZADA,
+      EstadoCompra.CANCELADA,
+      EstadoCompra.REEMBOLSADA,
+    ]) {
+      const c = new Compra({
+        comprador,
+        evento: eventoPasado,
+        tipoEntrada,
+        cantidad: 1,
+        estado,
+      });
+      expect(c.sincronizarEstadoPorFecha(new Date("2025-01-01T00:00:00.000Z"))).toBe(false);
+      expect(c.estado).toBe(estado);
+    }
   });
 });
 

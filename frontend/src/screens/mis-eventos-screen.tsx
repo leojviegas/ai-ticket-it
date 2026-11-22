@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { AppIcon } from "@/components/app-icon";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/components/screen-state";
 import { useAuth } from "@/context/auth-context";
 import { usePreferences } from "@/context/preferences-context";
+import { ApiError } from "@/services/api";
 import { usuarioService } from "@/services/usuario-service";
 import { radius, shadows, spacing } from "@/theme";
 import type { Evento } from "@/types/api";
@@ -19,35 +20,49 @@ import { extractErrorMessage, formatDateShort } from "@/utils/format";
 export function MisEventosScreen() {
   const router = useRouter();
   const { colors, theme } = usePreferences();
-  const { user } = useAuth();
+  const { user, verifySession } = useAuth();
 
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const userId = user?.id ?? null;
+  const hasLoadedRef = useRef(false);
+
+  useEffect(() => {
+    hasLoadedRef.current = false;
+  }, [userId]);
 
   const cargarEventosPropios = useCallback(
     async (isRefresh = false) => {
-      if (!user) {
+      if (!userId) {
         return;
       }
       if (isRefresh) {
         setRefreshing(true);
-      } else if (eventos.length === 0) {
+      } else if (!hasLoadedRef.current) {
         setLoading(true);
       }
       setError(null);
       try {
-        const perfil = await usuarioService.obtenerPorId(user.id);
+        const valid = await verifySession();
+        if (!valid) {
+          return;
+        }
+        const perfil = await usuarioService.obtenerPorId(userId);
+        hasLoadedRef.current = true;
         setEventos(perfil.eventosOrganizados);
       } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          return;
+        }
         setError(extractErrorMessage(err));
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [user, eventos.length]
+    [userId, verifySession]
   );
 
   useFocusEffect(
@@ -83,6 +98,7 @@ export function MisEventosScreen() {
           title="Todavía no creaste tu primer evento"
           description="Para empezar a organizar algún evento, creá uno definiendo su fecha, tipos de entrada y cupos."
           actionLabel="Crear mi primer evento"
+          actionTestID="create-event-btn"
           onAction={() => router.push("/crear-evento")}
           secondaryNote="Si no tenés pensado crear eventos futuros, podés deshabilitar este botón en Perfil → Opciones."
         />
@@ -106,6 +122,7 @@ export function MisEventosScreen() {
         ListHeaderComponent={
           <View style={styles.headerBlock}>
             <Pressable
+              testID="create-event-btn"
               onPress={() => router.push("/crear-evento")}
               style={({ pressed }) => [
                 styles.createBtn,

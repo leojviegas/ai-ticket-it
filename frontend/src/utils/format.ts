@@ -1,3 +1,4 @@
+import { ApiError, SESSION_EXPIRED_MESSAGE } from "@/services/api";
 import type { Compra } from "@/types/api";
 
 const MESES_CORTOS = [
@@ -101,7 +102,13 @@ export function getInitials(nombre: string, apellido = ""): string {
 }
 
 export function extractErrorMessage(error: unknown, fallback = "Ocurrió un error inesperado"): string {
+  if (error instanceof ApiError && error.status === 401) {
+    return SESSION_EXPIRED_MESSAGE;
+  }
   if (error instanceof Error && error.message.trim() !== "") {
+    if (/token/i.test(error.message)) {
+      return SESSION_EXPIRED_MESSAGE;
+    }
     return error.message;
   }
   return fallback;

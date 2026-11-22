@@ -21,7 +21,7 @@ export const authService = {
     });
   },
 
-  me(token?: string): Promise<Usuario> {
-    return apiRequest<Usuario>("/auth/me", { token });
+  me(token?: string, skipUnauthorizedHandler = false): Promise<Usuario> {
+    return apiRequest<Usuario>("/auth/me", { token, skipUnauthorizedHandler });
   },
 };

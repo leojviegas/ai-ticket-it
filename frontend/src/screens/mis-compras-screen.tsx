@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -22,6 +22,7 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { useAuth } from "@/context/auth-context";
 import { usePreferences } from "@/context/preferences-context";
+import { ApiError } from "@/services/api";
 import { compraService } from "@/services/compra-service";
 import { reseniaService } from "@/services/resenia-service";
 import { radius, shadows, spacing } from "@/theme";
@@ -69,15 +70,21 @@ export function MisComprasScreen() {
   const [detalleResenia, setDetalleResenia] = useState("");
   const [savingReview, setSavingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const userId = user?.id ?? null;
+  const hasLoadedRef = useRef(false);
+
+  useEffect(() => {
+    hasLoadedRef.current = false;
+  }, [userId]);
 
   const cargarCompras = useCallback(
     async (isRefresh = false) => {
-      if (!user) {
+      if (!userId) {
         return;
       }
       if (isRefresh) {
         setRefreshing(true);
-      } else if (compras.length === 0) {
+      } else if (!hasLoadedRef.current) {
         setLoading(true);
       }
       setError(null);
@@ -86,15 +93,19 @@ export function MisComprasScreen() {
           soloFuturos: scope === "futuros" ? true : undefined,
           estado: estadoFiltro === "TODOS" ? undefined : estadoFiltro,
         });
+        hasLoadedRef.current = true;
         setCompras(data);
       } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          return;
+        }
         setError(extractErrorMessage(err));
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [user, scope, estadoFiltro, compras.length]
+    [userId, scope, estadoFiltro]
   );
 
   useFocusEffect(
@@ -187,6 +198,7 @@ export function MisComprasScreen() {
                 return (
                   <Pressable
                     key={key}
+                    testID={`scope-${key}`}
                     onPress={() => setScope(key)}
                     style={[
                       styles.segmentBtn,
@@ -302,6 +314,7 @@ export function MisComprasScreen() {
                 ]}
               >
                 <Pressable
+                  testID={`compra-tracking-${item.id}`}
                   onPress={() => setTrackingCompra(item)}
                   style={[styles.actionBtn, { backgroundColor: colors.surface }]}
                 >
@@ -312,6 +325,7 @@ export function MisComprasScreen() {
                 </Pressable>
 
                 <Pressable
+                  testID={`compra-chat-${item.id}`}
                   onPress={() => router.push(`/chat/${item.id}`)}
                   style={[styles.actionBtn, { backgroundColor: colors.primary }]}
                 >
@@ -323,6 +337,7 @@ export function MisComprasScreen() {
 
                 {canCancel ? (
                   <Pressable
+                    testID={`compra-cancel-${item.id}`}
                     onPress={() => {
                       setActionError(null);
                       setCancelTarget(item);
@@ -469,6 +484,7 @@ export function MisComprasScreen() {
                 </Text>
               </Pressable>
               <Pressable
+                testID="confirm-cancel-btn"
                 disabled={canceling}
                 onPress={() => void handleConfirmCancel()}
                 style={[styles.primaryBtn, { backgroundColor: colors.dangerFg }]}

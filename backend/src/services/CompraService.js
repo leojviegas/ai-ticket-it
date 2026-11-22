@@ -61,8 +61,8 @@ export class CompraService {
     return this.enriquecerCompra(compra);
   }
 
-  listarCompras({ compradorId, eventoId } = {}) {
-    let compras = this.compraRepository.findAll();
+  listarCompras({ compradorId, eventoId, estado, soloFuturos, fechaActual = new Date() } = {}) {
+    let compras = this.compraRepository.findAll(fechaActual);
 
     if (compradorId !== undefined && compradorId !== "") {
       const cId = Number(compradorId);
@@ -72,6 +72,14 @@ export class CompraService {
     if (eventoId !== undefined && eventoId !== "") {
       const eId = Number(eventoId);
       compras = compras.filter((c) => c.evento.id === eId);
+    }
+
+    if (estado !== undefined && estado !== "") {
+      compras = compras.filter((c) => c.estado === estado);
+    }
+
+    if (soloFuturos === true || soloFuturos === "true") {
+      compras = compras.filter((c) => !c.evento.yaOcurrio(fechaActual));
     }
 
     return compras.map((c) => this.enriquecerCompra(c));
@@ -108,6 +116,12 @@ export class CompraService {
       );
     }
 
+    if (estado === EstadoCompra.UTILIZADA) {
+      throw new BusinessRuleError(
+        "El paso a UTILIZADA es automático al alcanzarse la fecha del evento"
+      );
+    }
+
     compra.actualizarEstado(estado, usuario);
     return this.enriquecerCompra(compra);
   }
@@ -123,12 +137,8 @@ export class CompraService {
       throw new BusinessRuleError("No tienes permiso para cancelar esta compra");
     }
 
-    // ADR 002 (DUDA-06, Opción A): en PENDIENTE pueden cancelar comprador u organizador;
-    // en CONFIRMADA solo el comprador puede cancelar.
-    if (compra.estado === EstadoCompra.CONFIRMADA && !esComprador) {
-      throw new BusinessRuleError("Solo el comprador puede cancelar una compra confirmada");
-    }
-
+    // ADR 005: tanto comprador como organizador pueden cancelar en PENDIENTE o CONFIRMADA
+    // mientras el evento aún no haya ocurrido.
     compra.cancelar(usuario, fechaActual);
     return this.enriquecerCompra(compra);
   }
@@ -147,11 +157,11 @@ export class CompraService {
     return this.enriquecerCompra(compra);
   }
 
-  agregarMensaje(compraId, { usuarioId, mensaje }) {
+  agregarMensaje(compraId, { usuarioId, mensaje = "", adjunto = null }) {
     const compra = this.compraRepository.findByIdOrThrow(compraId);
     const usuario = this.usuarioRepository.findByIdOrThrow(usuarioId);
 
-    const nuevoMensaje = compra.agregarMensaje(usuario, mensaje);
+    const nuevoMensaje = compra.agregarMensaje(usuario, mensaje, new Date(), adjunto);
     return {
       mensaje: nuevoMensaje.toJSON(),
       compra: this.enriquecerCompra(compra),

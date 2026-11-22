@@ -35,6 +35,7 @@ export default function TabsLayout() {
         options={{
           title: "AI Ticket It",
           tabBarLabel: "Inicio",
+          tabBarButtonTestID: "tab-inicio",
           tabBarIcon: ({ color }) => <AppIcon name="home" size={22} color={color} />,
         }}
       />
@@ -44,6 +45,7 @@ export default function TabsLayout() {
         options={{
           title: "Favoritos",
           tabBarLabel: "Favoritos",
+          tabBarButtonTestID: "tab-favoritos",
           tabBarIcon: ({ color, focused }) => (
             <AppIcon name={focused ? "heartFill" : "heart"} size={22} color={color} />
           ),
@@ -55,6 +57,7 @@ export default function TabsLayout() {
         options={{
           title: defaultMyEventsView ? "Mis Eventos" : "Mis Compras",
           tabBarLabel: defaultMyEventsView ? "Mis Eventos" : "Compras",
+          tabBarButtonTestID: "tab-central",
           tabBarIcon: ({ color }) => (
             <AppIcon
               name={defaultMyEventsView ? "calendar" : "ticket"}
@@ -70,6 +73,7 @@ export default function TabsLayout() {
         options={{
           title: "Mensajes",
           tabBarLabel: "Mensajes",
+          tabBarButtonTestID: "tab-mensajes",
           tabBarBadge: hasUnread ? "" : undefined,
           tabBarBadgeStyle: hasUnread
             ? {
@@ -90,6 +94,7 @@ export default function TabsLayout() {
         options={{
           title: "Perfil",
           tabBarLabel: "Perfil",
+          tabBarButtonTestID: "tab-perfil",
           tabBarIcon: ({ color }) => <AppIcon name="user" size={22} color={color} />,
         }}
       />

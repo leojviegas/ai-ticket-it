@@ -13,10 +13,20 @@ export class ApiError extends Error {
   }
 }
 
+export const SESSION_EXPIRED_MESSAGE =
+  "Tu sesión venció. Volvé a iniciar sesión para continuar.";
+
 let currentToken: string | null = null;
+
+type UnauthorizedHandler = (message?: string) => void;
+let onUnauthorizedHandler: UnauthorizedHandler | null = null;
 
 export function setApiAuthToken(token: string | null): void {
   currentToken = token;
+}
+
+export function setOnUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  onUnauthorizedHandler = handler;
 }
 
 function resolveApiBaseUrl(): string {
@@ -59,10 +69,11 @@ interface RequestOptions {
   body?: unknown;
   token?: string | null;
   signal?: AbortSignal;
+  skipUnauthorizedHandler?: boolean;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, token, signal } = options;
+  const { method = "GET", body, token, signal, skipUnauthorizedHandler = false } = options;
   const authToken = token !== undefined ? token : currentToken;
 
   const headers: Record<string, string> = {
@@ -104,10 +115,17 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (!response.ok) {
-    const msg =
-      parsed?.error ||
-      parsed?.message ||
-      `Error HTTP ${response.status} al consultar ${path}`;
+    const isLoginOrRegister =
+      path.startsWith("/auth/login") || path.startsWith("/auth/register");
+    const isSessionExpired = response.status === 401 && !isLoginOrRegister;
+    const msg = isSessionExpired
+      ? SESSION_EXPIRED_MESSAGE
+      : parsed?.error ||
+        parsed?.message ||
+        `Error HTTP ${response.status} al consultar ${path}`;
+    if (isSessionExpired && !skipUnauthorizedHandler) {
+      onUnauthorizedHandler?.(SESSION_EXPIRED_MESSAGE);
+    }
     throw new ApiError(msg, response.status, parsed?.details ?? null);
   }
 

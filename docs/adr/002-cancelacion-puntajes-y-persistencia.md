@@ -29,6 +29,7 @@
 - **Justificación**: Garantiza consistencia absoluta (fuente única de verdad), mantiene limpias las entidades del dominio respecto al diagrama y el costo computacional en memoria es despreciable.
 
 ### 6. Cancelación de compra `PENDIENTE` por parte del Organizador (`DUDA-06`)
+- *(Nota: Regla actualizada parcialmente por [ADR 005](./005-transiciones-automaticas-y-cancelacion-organizador.md): el organizador también puede cancelar compras `CONFIRMADA` antes de la fecha del evento, y el paso `CONFIRMADA -> UTILIZADA` es automático al cumplirse `evento.fecha`.)*
 - **Decisión**: Se adopta la **Opción A**:
   - En estado **`PENDIENTE`**: tanto el **comprador** como el **organizador** pueden cancelar la compra (pasando a `CANCELADA`, restituyendo el cupo al `TipoEntrada` y registrando en `CambioEstadoCompra.quien` quién ejecutó la acción).
   - En estado **`CONFIRMADA`**: **solo el comprador** puede cancelar la compra (siempre que el evento aún no haya ocurrido).

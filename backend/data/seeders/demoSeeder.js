@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import {
   Categoria,
   Usuario,
@@ -21,6 +22,8 @@ import {
 } from "../../src/repositories/index.js";
 
 const MS_POR_DIA = 86400000;
+export const DEMO_PASSWORD = "123456";
+const DEMO_PASSWORD_HASH = bcrypt.hashSync(DEMO_PASSWORD, 10);
 
 function fechaRelativa(dias) {
   return new Date(Date.now() + dias * MS_POR_DIA);
@@ -67,18 +70,42 @@ export function seedDemo() {
     })
   );
 
-  // 2. Usuarios (todos pueden comprar y organizar eventos)
+  // 2. Usuarios (todos pueden comprar y organizar eventos; contraseña demo: "123456")
   const sofia = usuarioRepository.save(
-    new Usuario({ id: 1, nombre: "Sofía", apellido: "Martínez" })
+    new Usuario({
+      id: 1,
+      nombre: "Sofía",
+      apellido: "Martínez",
+      email: "sofia@ticketit.com",
+      passwordHash: DEMO_PASSWORD_HASH,
+    })
   );
   const lucas = usuarioRepository.save(
-    new Usuario({ id: 2, nombre: "Lucas", apellido: "Fernández" })
+    new Usuario({
+      id: 2,
+      nombre: "Lucas",
+      apellido: "Fernández",
+      email: "lucas@ticketit.com",
+      passwordHash: DEMO_PASSWORD_HASH,
+    })
   );
   const valentina = usuarioRepository.save(
-    new Usuario({ id: 3, nombre: "Valentina", apellido: "Gómez" })
+    new Usuario({
+      id: 3,
+      nombre: "Valentina",
+      apellido: "Gómez",
+      email: "valentina@ticketit.com",
+      passwordHash: DEMO_PASSWORD_HASH,
+    })
   );
   const mateo = usuarioRepository.save(
-    new Usuario({ id: 4, nombre: "Mateo", apellido: "Rossi" })
+    new Usuario({
+      id: 4,
+      nombre: "Mateo",
+      apellido: "Rossi",
+      email: "mateo@ticketit.com",
+      passwordHash: DEMO_PASSWORD_HASH,
+    })
   );
 
   // 3. Eventos pasados (para historial de reseñas y reputación de organizadores)

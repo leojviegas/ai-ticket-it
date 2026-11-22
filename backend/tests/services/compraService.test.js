@@ -55,24 +55,55 @@ describe("CompraService", () => {
     expect(reembolsada.estado).toBe(EstadoCompra.REEMBOLSADA);
   });
 
-  test("ADR 002 DUDA-06 (Opción A): el organizador puede cancelar una compra PENDIENTE, pero no una CONFIRMADA", () => {
+  test("ADR 005: el organizador puede cancelar compras PENDIENTE y CONFIRMADA antes del evento, rechazando terceros", () => {
     // Compra 6 está PENDIENTE y su organizadora es Sofía (1)
     const canceladaPorOrg = compraService.cancelarCompra(6, { usuarioId: 1 });
     expect(canceladaPorOrg.estado).toBe(EstadoCompra.CANCELADA);
     expect(canceladaPorOrg.cambiosEstado.at(-1).quien.id).toBe(1);
 
-    // Compra 5 está CONFIRMADA (comprador Sofía 1, organizador Lucas 2)
-    expect(() => compraService.cancelarCompra(5, { usuarioId: 2 })).toThrow(BusinessRuleError);
-    expect(() => compraService.cancelarCompra(5, { usuarioId: 2 })).toThrow(
-      "Solo el comprador puede cancelar una compra confirmada"
-    );
-
-    // Un tercero (Mateo 4) tampoco puede cancelar compra 5
+    // Tercero (Mateo 4) no puede cancelar compra 5
     expect(() => compraService.cancelarCompra(5, { usuarioId: 4 })).toThrow(BusinessRuleError);
 
-    // El comprador (Sofía 1) sí puede cancelar su compra CONFIRMADA en evento futuro
-    const canceladaPorComp = compraService.cancelarCompra(5, { usuarioId: 1 });
-    expect(canceladaPorComp.estado).toBe(EstadoCompra.CANCELADA);
+    // Compra 5 está CONFIRMADA (compradora Sofía 1, organizador Lucas 2): Lucas puede cancelarla y restituye cupo
+    const cupoAntes = eventoService
+      .obtenerEventoDetalle(4)
+      .tiposEntrada.find((t) => t.id === 201).cupo;
+    const canceladaConfirmadaPorOrg = compraService.cancelarCompra(5, { usuarioId: 2 });
+    expect(canceladaConfirmadaPorOrg.estado).toBe(EstadoCompra.CANCELADA);
+    expect(canceladaConfirmadaPorOrg.cambiosEstado.at(-1).quien.id).toBe(2);
+    const cupoDespues = eventoService
+      .obtenerEventoDetalle(4)
+      .tiposEntrada.find((t) => t.id === 201).cupo;
+    expect(cupoDespues).toBe(cupoAntes + 2);
+  });
+
+  test("ADR 005: rechaza el paso manual a UTILIZADA y transiciona automáticamente CONFIRMADA -> UTILIZADA al llegar evento.fecha", () => {
+    expect(() =>
+      compraService.actualizarEstado(5, {
+        estado: EstadoCompra.UTILIZADA,
+        usuarioId: 2,
+      })
+    ).toThrow("El paso a UTILIZADA es automático al alcanzarse la fecha del evento");
+
+    const compraAntes = compraService.obtenerCompraPorId(5);
+    expect(compraAntes.estado).toBe(EstadoCompra.CONFIRMADA);
+
+    const fechaEventoAlcanzada = new Date(compraAntes.evento.fecha);
+    const comprasDespues = compraService.listarCompras({
+      compradorId: 1,
+      fechaActual: fechaEventoAlcanzada,
+    });
+    const compra5Actualizada = comprasDespues.find((c) => c.id === 5);
+    expect(compra5Actualizada.estado).toBe(EstadoCompra.UTILIZADA);
+
+    // Al pasar automáticamente a UTILIZADA habilita la reseña
+    const resenia = reseniaService.crearResenia({
+      compradorId: 1,
+      eventoId: 4,
+      puntuacion: 5,
+      detalle: "Excelente evento una vez finalizada la fecha",
+    });
+    expect(resenia.eventoId).toBe(4);
   });
 
   test("permite al comprador y al organizador intercambiar mensajes en el chat en cualquier estado", () => {
@@ -171,5 +202,41 @@ describe("CompraService", () => {
       detalle: "Excelente",
     });
     expect(compraService.obtenerCompraPorId(2).yaReseniado).toBe(true);
+  });
+
+  test("filtra compras por estado y soloFuturos y permite enviar mensajes con adjunto sin texto", () => {
+    // Sofía (1) tiene compra 1 (UTILIZADA, evento pasado) y compra 5 (CONFIRMADA, evento futuro)
+    const confirmadasSofia = compraService.listarCompras({
+      compradorId: 1,
+      estado: EstadoCompra.CONFIRMADA,
+    });
+    expect(confirmadasSofia).toHaveLength(1);
+    expect(confirmadasSofia[0].id).toBe(5);
+
+    const futurasSofia = compraService.listarCompras({
+      compradorId: 1,
+      soloFuturos: true,
+    });
+    expect(futurasSofia).toHaveLength(1);
+    expect(futurasSofia[0].id).toBe(5);
+
+    const utilizadasFuturasSofia = compraService.listarCompras({
+      compradorId: 1,
+      estado: EstadoCompra.UTILIZADA,
+      soloFuturos: true,
+    });
+    expect(utilizadasFuturasSofia).toHaveLength(0);
+
+    const resAdjunto = compraService.agregarMensaje(6, {
+      usuarioId: 4,
+      adjunto: {
+        nombre: "comprobante.png",
+        tipoMime: "image/png",
+        contenido: "data:image/png;base64,iVBORw0KGgo=",
+      },
+    });
+    expect(resAdjunto.mensaje.remitente.id).toBe(4);
+    expect(resAdjunto.mensaje.destinatario.id).toBe(1);
+    expect(resAdjunto.mensaje.adjunto.nombre).toBe("comprobante.png");
   });
 });

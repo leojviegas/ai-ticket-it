@@ -1,0 +1,1041 @@
+{
+  "info": {
+    "name": "AI Ticket It API",
+    "description": "Colección completa de Postman para probar todos los endpoints de la API REST de AI Ticket It.\n\nUsuarios precargados por el seeder (contraseña para todos: 123456):\n- Sofía Martínez (id 1): sofia@ticketit.com\n- Lucas Fernández (id 2): lucas@ticketit.com\n- Valentina Gómez (id 3): valentina@ticketit.com\n- Mateo Rossi (id 4): mateo@ticketit.com\n\nLa colección usa Bearer Token con la variable {{token}} a nivel colección. Al ejecutar cualquier request de Login o Register, un script post-response actualiza {{token}} automáticamente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Verifica que el servidor Express en memoria esté activo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Autenticación (/api/auth)",
+      "item": [
+        {
+          "name": "Registrar cuenta nueva",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Camila\",\n  \"apellido\": \"Vega\",\n  \"email\": \"camila.{{$timestamp}}@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Crea una cuenta nueva, hashea la contraseña con bcryptjs y devuelve accessToken + usuario."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Sofía (id 1)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sofia@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión como Sofía (id 1) y guarda automáticamente el JWT en {{token}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Lucas (id 2)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"lucas@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión como Lucas (id 2) y guarda automáticamente el JWT en {{token}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Valentina (id 3)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"valentina@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión como Valentina (id 3) y guarda automáticamente el JWT en {{token}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Mateo (id 4)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mateo@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión como Mateo (id 4) y guarda automáticamente el JWT en {{token}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener usuario autenticado (GET /auth/me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Requiere Bearer {{token}}. Valida que la sesión siga vigente y devuelve los datos frescos del usuario autenticado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Catálogo Público (Categorías, Usuarios y Organizadores)",
+      "item": [
+        {
+          "name": "Listar categorías",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categorias",
+              "host": ["{{baseUrl}}"],
+              "path": ["categorias"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": ["{{baseUrl}}"],
+              "path": ["usuarios"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de usuario (Sofía id 1)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["usuarios", "1"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reseñas y reputación de un organizador (Lucas id 2)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizadores/2/resenias",
+              "host": ["{{baseUrl}}"],
+              "path": ["organizadores", "2", "resenias"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar reseñas (con filtros opcionales)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/resenias",
+              "host": ["{{baseUrl}}"],
+              "path": ["resenias"],
+              "query": [
+                { "key": "eventoId", "value": "1", "disabled": true },
+                { "key": "compradorId", "value": "1", "disabled": true }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Favoritos (Requiere Auth)",
+      "item": [
+        {
+          "name": "Login previo como Sofía (para favoritos)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sofia@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar / quitar evento de favoritos",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": 5\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/1/favoritos",
+              "host": ["{{baseUrl}}"],
+              "path": ["usuarios", "1", "favoritos"]
+            },
+            "description": "Requiere Bearer {{token}} del usuario 1 (Sofía)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Eventos (/api/eventos)",
+      "item": [
+        {
+          "name": "Listar eventos (con filtros y ordenamiento)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos?soloFuturos=true&ordenarPor=precio&orden=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["eventos"],
+              "query": [
+                { "key": "q", "value": "festival", "disabled": true },
+                { "key": "categoriaId", "value": "3", "disabled": true },
+                { "key": "organizadorId", "value": "2", "disabled": true },
+                { "key": "precioMin", "value": "5000", "disabled": true },
+                { "key": "precioMax", "value": "30000", "disabled": true },
+                { "key": "soloFuturos", "value": "true" },
+                { "key": "ordenarPor", "value": "precio" },
+                { "key": "orden", "value": "asc" }
+              ]
+            },
+            "description": "Permite buscar por texto (q), filtrar por categoría, rango de precios y soloFuturos, y ordenar por precio, fecha o puntaje."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de un evento (id 4)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/4",
+              "host": ["{{baseUrl}}"],
+              "path": ["eventos", "4"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear nuevo evento (como Sofía - Requiere Auth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Noche de Jazz Electrónico\",\n  \"descripcion\": \"Presentación en vivo con artistas invitados\",\n  \"categoriaId\": 1,\n  \"fecha\": \"2027-06-20T21:00:00.000Z\",\n  \"multimedia\": [\n    \"https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=800\"\n  ],\n  \"tiposEntrada\": [\n    {\n      \"nombre\": \"General\",\n      \"descripcion\": \"Acceso general de pie\",\n      \"precio\": 18000,\n      \"cupo\": 100\n    },\n    {\n      \"nombre\": \"VIP\",\n      \"descripcion\": \"Sector preferencial con consumición\",\n      \"precio\": 35000,\n      \"cupo\": 20\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/eventos",
+              "host": ["{{baseUrl}}"],
+              "path": ["eventos"]
+            },
+            "description": "Requiere Bearer {{token}}. El organizador se toma automáticamente de req.user.id. Guarda {{eventoCreadoId}} y {{tipoEntradaCreadoId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('eventoCreadoId', data.id);",
+                  "if (data.tiposEntrada && data.tiposEntrada.length > 0) {",
+                  "  pm.collectionVariables.set('tipoEntradaCreadoId', data.tiposEntrada[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Panel de ventas y cupos del evento (Requiere Auth del organizador)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/{{eventoCreadoId}}/compras",
+              "host": ["{{baseUrl}}"],
+              "path": ["eventos", "{{eventoCreadoId}}", "compras"]
+            },
+            "description": "Requiere Bearer {{token}} del organizador del evento (Sofía)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Compras, Estados, Chat y Cancelación (/api/compras)",
+      "item": [
+        {
+          "name": "Login como Mateo (comprador)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mateo@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Realizar compra (Mateo compra en evento de Sofía)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": {{eventoCreadoId}},\n  \"tipoEntradaId\": {{tipoEntradaCreadoId}},\n  \"cantidad\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compras",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras"]
+            },
+            "description": "Requiere Bearer {{token}}. El comprador se toma automáticamente del JWT. Guarda {{compraCreadaId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('compraCreadaId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar mis compras (como usuario autenticado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/compras",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras"],
+              "query": [
+                { "key": "eventoId", "value": "{{eventoCreadoId}}", "disabled": true }
+              ]
+            },
+            "description": "Requiere Bearer {{token}}. Lista las compras del usuario autenticado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de compra (con historial y chat)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/compras/{{compraCreadaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras", "{{compraCreadaId}}"]
+            },
+            "description": "Requiere Bearer {{token}} del comprador o del organizador del evento."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enviar mensaje en chat (como Mateo - comprador)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mensaje\": \"Hola Sofía, ¿a qué hora abren las puertas?\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compras/{{compraCreadaId}}/mensajes",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras", "{{compraCreadaId}}", "mensajes"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login como Sofía (organizadora)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sofia@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirmar compra (PATCH estado -> CONFIRMADA, como Sofía)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"CONFIRMADA\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compras/{{compraCreadaId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras", "{{compraCreadaId}}", "estado"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Responder mensaje en chat (como Sofía - organizadora)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mensaje\": \"Hola Mateo, abrimos a las 20:00 hs.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compras/{{compraCreadaId}}/mensajes",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras", "{{compraCreadaId}}", "mensajes"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login como Mateo (para cancelar compra)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mateo@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar compra (como Mateo -> CANCELADA y restituye cupo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compras/{{compraCreadaId}}/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras", "{{compraCreadaId}}", "cancelar"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login como Sofía (para reembolsar compra)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sofia@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reembolsar compra (como Sofía -> REEMBOLSADA)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compras/{{compraCreadaId}}/reembolsar",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras", "{{compraCreadaId}}", "reembolsar"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Reseñas (/api/resenias)",
+      "item": [
+        {
+          "name": "Login como Mateo (tiene entrada UTILIZADA en evento 1 sin reseñar)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mateo@ticketit.com\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('token', data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear reseña (Mateo califica evento 1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": 1,\n  \"puntuacion\": 5,\n  \"detalle\": \"Excelente sonido y puntualidad en el evento.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/resenias",
+              "host": ["{{baseUrl}}"],
+              "path": ["resenias"]
+            },
+            "description": "Requiere Bearer {{token}} de Mateo (id 4), quien en el seeder tiene la compra 2 en estado UTILIZADA sobre el evento 1."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificar reputación actualizada del organizador (Lucas id 2)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizadores/2/resenias",
+              "host": ["{{baseUrl}}"],
+              "path": ["organizadores", "2", "resenias"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "eventoCreadoId", "value": "", "type": "string" },
+    { "key": "tipoEntradaCreadoId", "value": "", "type": "string" },
+    { "key": "compraCreadaId", "value": "", "type": "string" }
+  ]
+}

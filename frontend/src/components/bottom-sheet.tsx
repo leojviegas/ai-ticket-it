@@ -34,7 +34,7 @@ export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
         style={styles.root}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Pressable style={styles.backdrop} onPress={onClose} />
+        <Pressable testID="bottom-sheet-backdrop" style={styles.backdrop} onPress={onClose} />
         <View
           style={[
             styles.sheet,

@@ -5,6 +5,22 @@ export class CompraRepository extends BaseMemoryRepository {
     super("Compra");
   }
 
+  findById(id, fechaActual = new Date()) {
+    const compra = super.findById(id);
+    if (compra) {
+      compra.sincronizarEstadoPorFecha(fechaActual);
+    }
+    return compra;
+  }
+
+  findAll(fechaActual = new Date()) {
+    const compras = super.findAll();
+    for (const compra of compras) {
+      compra.sincronizarEstadoPorFecha(fechaActual);
+    }
+    return compras;
+  }
+
   findByCompradorId(compradorId) {
     const id = Number(compradorId);
     return this.findAll().filter((compra) => compra.comprador.id === id);

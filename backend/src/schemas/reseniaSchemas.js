@@ -2,7 +2,7 @@ import { z } from "zod";
 import { emptyStringToUndefined } from "./validator.js";
 
 export const crearReseniaSchema = z.object({
-  compradorId: z.coerce.number().int().positive("compradorId es obligatorio"),
+  compradorId: z.coerce.number().int().positive("compradorId debe ser un entero positivo").optional(),
   eventoId: z.coerce.number().int().positive("eventoId es obligatorio"),
   puntuacion: z.coerce
     .number()

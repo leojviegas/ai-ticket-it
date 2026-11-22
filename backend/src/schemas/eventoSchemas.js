@@ -1,5 +1,20 @@
 import { z } from "zod";
+import { EstadoCompra } from "../domain/index.js";
 import { emptyStringToUndefined } from "./validator.js";
+
+const DATA_URI_IMAGEN_REGEX = /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+
+function esMultimediaValida(valor) {
+  if (DATA_URI_IMAGEN_REGEX.test(valor)) {
+    return true;
+  }
+  try {
+    const url = new URL(valor);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 export const tipoEntradaInputSchema = z.object({
   nombre: z.string().trim().min(1, "El nombre del tipo de entrada es obligatorio"),
@@ -12,10 +27,15 @@ export const crearEventoSchema = z.object({
   nombre: z.string().trim().min(1, "El nombre del evento es obligatorio"),
   descripcion: z.string().trim().min(1, "La descripción del evento es obligatoria"),
   categoriaId: z.coerce.number().int().positive("categoriaId es obligatorio"),
-  organizadorId: z.coerce.number().int().positive("organizadorId es obligatorio"),
+  organizadorId: z.coerce.number().int().positive("organizadorId debe ser un entero positivo").optional(),
   fecha: z.string().min(1, "La fecha del evento es obligatoria"),
   multimedia: z
-    .array(z.string().trim().url("Cada elemento multimedia debe ser una URL válida"))
+    .array(
+      z
+        .string()
+        .trim()
+        .refine(esMultimediaValida, "Cada elemento multimedia debe ser una URL válida o imagen en base64")
+    )
     .optional()
     .default([]),
   tiposEntrada: z
@@ -53,5 +73,9 @@ export const obtenerComprasEventoQuerySchema = z.object({
   organizadorId: z.preprocess(
     emptyStringToUndefined,
     z.coerce.number().int().positive().optional()
+  ),
+  estado: z.preprocess(
+    emptyStringToUndefined,
+    z.enum(Object.values(EstadoCompra)).optional()
   ),
 });

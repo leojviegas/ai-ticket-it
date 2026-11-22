@@ -186,7 +186,7 @@ export class EventoService {
     return this.enriquecerEvento(evento, fechaActual);
   }
 
-  obtenerComprasYDisponibilidad(eventoId, { organizadorId } = {}) {
+  obtenerComprasYDisponibilidad(eventoId, { organizadorId, estado } = {}) {
     const evento = this.eventoRepository.findByIdOrThrow(eventoId);
     if (organizadorId !== undefined && organizadorId !== "") {
       const organizador = this.usuarioRepository.findByIdOrThrow(organizadorId);
@@ -197,11 +197,11 @@ export class EventoService {
       }
     }
 
-    const compras = this.compraRepository.findByEventoId(evento.id);
+    const todasLasCompras = this.compraRepository.findByEventoId(evento.id);
     const reseniasEvento = this.reseniaService.obtenerResumenPorEvento(evento.id).resenias;
 
     const disponibilidadPorTipo = evento.tiposEntrada.map((tipo) => {
-      const entradasVendidas = compras
+      const entradasVendidas = todasLasCompras
         .filter(
           (c) =>
             c.tipoEntrada.id === tipo.id &&
@@ -209,7 +209,7 @@ export class EventoService {
         )
         .reduce((acc, c) => acc + c.cantidad, 0);
 
-      const entradasReservadas = compras
+      const entradasReservadas = todasLasCompras
         .filter((c) => c.tipoEntrada.id === tipo.id && c.estado === EstadoCompra.PENDIENTE)
         .reduce((acc, c) => acc + c.cantidad, 0);
 
@@ -221,10 +221,15 @@ export class EventoService {
       };
     });
 
+    const comprasFiltradas =
+      estado !== undefined && estado !== ""
+        ? todasLasCompras.filter((c) => c.estado === estado)
+        : todasLasCompras;
+
     return {
       evento: this.enriquecerEvento(evento),
       disponibilidadPorTipo,
-      compras: compras.map((c) => ({
+      compras: comprasFiltradas.map((c) => ({
         ...c.toJSON(),
         yaReseniado: reseniasEvento.some((r) => r.comprador.id === c.comprador.id),
       })),

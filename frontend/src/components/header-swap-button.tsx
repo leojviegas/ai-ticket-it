@@ -1,6 +1,6 @@
-import { usePathname, useRouter } from "expo-router";
+import { useIsFocused, usePathname, useRouter } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet } from "react-native";
+import { Platform, Pressable, StyleSheet } from "react-native";
 import { AppIcon } from "@/components/app-icon";
 import { usePreferences } from "@/context/preferences-context";
 import { radius, spacing } from "@/theme";
@@ -8,7 +8,12 @@ import { radius, spacing } from "@/theme";
 export function HeaderSwapButton() {
   const router = useRouter();
   const pathname = usePathname();
+  const isFocused = useIsFocused();
   const { colors, showMyEventsBtn, defaultMyEventsView } = usePreferences();
+
+  if (Platform.OS === "web" && !isFocused) {
+    return null;
+  }
 
   if (!defaultMyEventsView && !showMyEventsBtn) {
     return null;
@@ -21,6 +26,7 @@ export function HeaderSwapButton() {
 
   return (
     <Pressable
+      testID="header-swap-btn"
       onPress={() => router.push(targetIsCompras ? "/mis-compras" : "/mis-eventos")}
       accessibilityLabel={targetIsCompras ? "Mis Compras" : "Mis Eventos"}
       style={({ pressed }) => [

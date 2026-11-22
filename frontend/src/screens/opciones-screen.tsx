@@ -36,6 +36,7 @@ export function OpcionesScreen() {
         </Text>
         <View style={styles.themeRow}>
           <Pressable
+            testID="theme-light-btn"
             onPress={() => setTheme("light")}
             style={[
               styles.themeBtn,
@@ -56,6 +57,7 @@ export function OpcionesScreen() {
           </Pressable>
 
           <Pressable
+            testID="theme-dark-btn"
             onPress={() => setTheme("dark")}
             style={[
               styles.themeBtn,
@@ -98,7 +100,7 @@ export function OpcionesScreen() {
               Aplica paleta segura Okabe-Ito y refuerza bordes e iconos en todos los estados.
             </Text>
           </View>
-          <Switch value={colorblind} onValueChange={setColorblind} />
+          <Switch testID="switch-colorblind" value={colorblind} onValueChange={setColorblind} />
         </View>
 
         <View
@@ -116,6 +118,7 @@ export function OpcionesScreen() {
             </Text>
           </View>
           <Switch
+            testID="switch-default-my-events"
             value={defaultMyEventsView}
             onValueChange={setDefaultMyEventsView}
           />
@@ -142,6 +145,7 @@ export function OpcionesScreen() {
             </Text>
           </View>
           <Switch
+            testID="switch-show-my-events"
             value={showMyEventsBtn}
             disabled={defaultMyEventsView}
             onValueChange={setShowMyEventsBtn}

@@ -19,6 +19,7 @@ import {
   NotFoundError,
   ConflictError,
   BusinessRuleError,
+  ForbiddenError,
 } from "../../src/services/errors/ServiceError.js";
 
 function createMockRes() {
@@ -54,6 +55,7 @@ describe("Middlewares (errorHandler y notFoundHandler)", () => {
       [new RequestValidationError("Dato inválido", [{ path: "id", message: "inválido" }]), 400, true],
       [new DomainValidationError("Invariante violada"), 400, false],
       [new BusinessRuleError("Regla incumplida"), 400, false],
+      [new ForbiddenError("Acceso denegado"), 403, false],
       [new EntityNotFoundError("Entidad no encontrada"), 404, false],
       [new NotFoundError("Recurso no encontrado"), 404, false],
       [new InvalidStateTransitionError("Transición prohibida"), 409, false],

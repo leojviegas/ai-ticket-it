@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -46,6 +46,7 @@ export function InicioScreen() {
   const [draftMin, setDraftMin] = useState("");
   const [draftMax, setDraftMax] = useState("");
   const [filterError, setFilterError] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -60,7 +61,7 @@ export function InicioScreen() {
     async (isRefresh = false) => {
       if (isRefresh) {
         setRefreshing(true);
-      } else if (eventos.length === 0) {
+      } else if (!hasLoadedRef.current) {
         setLoading(true);
       }
       setError(null);
@@ -76,6 +77,7 @@ export function InicioScreen() {
           soloFuturos: true,
           ordenarPor,
         });
+        hasLoadedRef.current = true;
         setEventos(data);
       } catch (err) {
         setError(extractErrorMessage(err));
@@ -84,7 +86,7 @@ export function InicioScreen() {
         setRefreshing(false);
       }
     },
-    [searchQuery, selectedCatId, precioMinInput, precioMaxInput, ordenarPor, eventos.length]
+    [searchQuery, selectedCatId, precioMinInput, precioMaxInput, ordenarPor]
   );
 
   useEffect(() => {
@@ -197,6 +199,7 @@ export function InicioScreen() {
               >
                 <AppIcon name="search" size={18} color={colors.muted} />
                 <TextInput
+                  testID="search-input"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholder="Buscar eventos, artistas, charlas..."
@@ -212,6 +215,7 @@ export function InicioScreen() {
               </View>
 
               <Pressable
+                testID="open-filters-btn"
                 onPress={openFilters}
                 accessibilityLabel="Ordenar y filtrar"
                 style={({ pressed }) => [
@@ -311,7 +315,7 @@ export function InicioScreen() {
       <BottomSheet visible={filtersOpen} onClose={() => setFiltersOpen(false)}>
         <View style={styles.sheetHeader}>
           <Text style={[styles.sheetTitle, { color: colors.text }]}>Ordenar y filtrar</Text>
-          <Pressable onPress={clearAllFilters}>
+          <Pressable testID="reset-filters-btn" onPress={clearAllFilters}>
             <Text style={[styles.resetText, { color: colors.primary }]}>Restablecer</Text>
           </Pressable>
         </View>
@@ -330,6 +334,7 @@ export function InicioScreen() {
               return (
                 <Pressable
                   key={key}
+                  testID={`sort-${key}`}
                   onPress={() => setDraftOrden(key)}
                   style={[
                     styles.orderBtn,
@@ -358,6 +363,7 @@ export function InicioScreen() {
             <View style={[styles.priceInputBox, { backgroundColor: colors.background }]}>
               <Text style={[styles.inputHint, { color: colors.muted }]}>Mínimo</Text>
               <TextInput
+                testID="filter-price-min"
                 value={draftMin}
                 onChangeText={setDraftMin}
                 keyboardType="numeric"
@@ -369,6 +375,7 @@ export function InicioScreen() {
             <View style={[styles.priceInputBox, { backgroundColor: colors.background }]}>
               <Text style={[styles.inputHint, { color: colors.muted }]}>Máximo</Text>
               <TextInput
+                testID="filter-price-max"
                 value={draftMax}
                 onChangeText={setDraftMax}
                 keyboardType="numeric"
@@ -385,6 +392,7 @@ export function InicioScreen() {
         ) : null}
 
         <Pressable
+          testID="apply-filters-btn"
           onPress={applyFilters}
           style={({ pressed }) => [
             styles.applyBtn,

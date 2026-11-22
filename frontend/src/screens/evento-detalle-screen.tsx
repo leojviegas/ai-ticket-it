@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -40,17 +40,23 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState<string | null>(null);
   const [successSheetVisible, setSuccessSheetVisible] = useState(false);
+  const hasLoadedRef = useRef(false);
+
+  useEffect(() => {
+    hasLoadedRef.current = false;
+  }, [eventoId]);
 
   const cargarDetalle = useCallback(
     async (isRefresh = false) => {
       if (isRefresh) {
         setRefreshing(true);
-      } else if (!detalle) {
+      } else if (!hasLoadedRef.current) {
         setLoading(true);
       }
       setError(null);
       try {
         const data = await eventoService.obtenerDetalle(eventoId);
+        hasLoadedRef.current = true;
         setDetalle(data);
       } catch (err) {
         setError(extractErrorMessage(err));
@@ -59,7 +65,7 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
         setRefreshing(false);
       }
     },
-    [eventoId, detalle]
+    [eventoId]
   );
 
   useFocusEffect(
@@ -146,18 +152,13 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
     }
   };
 
-  const reviewsToDisplay =
-    detalle.reseniasEvento.length > 0
-      ? detalle.reseniasEvento
-      : detalle.reseniasEventosAnterioresOrganizador;
-
-  const reviewsSectionTitle =
-    detalle.reseniasEvento.length > 0
-      ? "Reseñas de este evento"
-      : "Experiencias previas con este organizador";
+  const showReviewsSection = detalle.yaOcurrio || detalle.reseniasEvento.length > 0;
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View
+      testID={`event-detail-root-${eventoId}`}
+      style={[styles.root, { backgroundColor: colors.background }]}
+    >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -175,6 +176,7 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
           <View style={styles.heroScrim} />
 
           <Pressable
+            testID="hero-fav-btn"
             onPress={() => {
               if (!user) {
                 router.push("/(tabs)/perfil");
@@ -220,6 +222,7 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
                 </Text>
               </View>
               <Pressable
+                testID="manage-event-btn"
                 onPress={() => router.push(`/gestionar-evento/${detalle.id}`)}
                 style={[styles.ownerBtn, { backgroundColor: colors.primary }]}
               >
@@ -235,6 +238,7 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
           </Text>
 
           <Pressable
+            testID="organizer-card"
             onPress={() => router.push(`/organizador/${detalle.organizador.id}`)}
             style={({ pressed }) => [
               styles.orgCard,
@@ -321,6 +325,7 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
                         {qty > 0 ? (
                           <>
                             <Pressable
+                              testID={`ticket-minus-${tipo.id}`}
                               onPress={() => adjustQuantity(tipo.id, -1, tipo.cupo)}
                               accessibilityLabel={
                                 qty === 1 ? "Quitar entrada seleccionada" : "Restar cantidad"
@@ -344,6 +349,7 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
                         ) : null}
 
                         <Pressable
+                          testID={`ticket-plus-${tipo.id}`}
                           disabled={disabledStepper || qty >= tipo.cupo}
                           onPress={() => adjustQuantity(tipo.id, 1, tipo.cupo)}
                           accessibilityLabel="Sumar cantidad"
@@ -373,6 +379,7 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
 
           {!isOwner ? (
             <Pressable
+              testID="buy-submit-btn"
               disabled={detalle.yaOcurrio || totalSeleccionado.count === 0 || buying}
               onPress={() => void handleComprar()}
               style={({ pressed }) => [
@@ -415,51 +422,53 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
             </Pressable>
           ) : null}
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {reviewsSectionTitle}
-            </Text>
-            {reviewsToDisplay.length === 0 ? (
-              <View style={[styles.emptyReviewCard, { backgroundColor: colors.surface }]}>
-                <Text style={[styles.emptyReviewText, { color: colors.muted }]}>
-                  Todavía no hay reseñas registradas.
-                </Text>
-              </View>
-            ) : (
-              reviewsToDisplay.map((rev) => (
-                <View
-                  key={rev.id}
-                  style={[
-                    styles.reviewCard,
-                    {
-                      backgroundColor: colors.surface,
-                      boxShadow: theme === "dark" ? shadows.darkCard : shadows.card,
-                    },
-                  ]}
-                >
-                  <View style={styles.reviewHeader}>
-                    <View>
-                      <Text style={[styles.reviewAuthor, { color: colors.text }]}>
-                        {rev.comprador.nombre} {rev.comprador.apellido}
-                      </Text>
-                      <Text style={[styles.reviewEvent, { color: colors.muted }]}>
-                        {rev.eventoNombre}
-                      </Text>
-                    </View>
-                    <View style={[styles.reviewScore, { backgroundColor: colors.soft }]}>
-                      <AppIcon name="star" size={12} color={colors.gold} />
-                      <Text style={[styles.reviewScoreText, { color: colors.text }]}>
-                        {rev.puntuacion.toFixed(1)}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={[styles.reviewDetail, { color: colors.muted }]}>
-                    {rev.detalle}
+          {showReviewsSection ? (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Reseñas de este evento
+              </Text>
+              {detalle.reseniasEvento.length === 0 ? (
+                <View style={[styles.emptyReviewCard, { backgroundColor: colors.surface }]}>
+                  <Text style={[styles.emptyReviewText, { color: colors.muted }]}>
+                    Todavía no hay reseñas para este evento.
                   </Text>
                 </View>
-              ))
-            )}
-          </View>
+              ) : (
+                detalle.reseniasEvento.map((rev) => (
+                  <View
+                    key={rev.id}
+                    style={[
+                      styles.reviewCard,
+                      {
+                        backgroundColor: colors.surface,
+                        boxShadow: theme === "dark" ? shadows.darkCard : shadows.card,
+                      },
+                    ]}
+                  >
+                    <View style={styles.reviewHeader}>
+                      <View>
+                        <Text style={[styles.reviewAuthor, { color: colors.text }]}>
+                          {rev.comprador.nombre} {rev.comprador.apellido}
+                        </Text>
+                        <Text style={[styles.reviewEvent, { color: colors.muted }]}>
+                          {rev.eventoNombre}
+                        </Text>
+                      </View>
+                      <View style={[styles.reviewScore, { backgroundColor: colors.soft }]}>
+                        <AppIcon name="star" size={12} color={colors.gold} />
+                        <Text style={[styles.reviewScoreText, { color: colors.text }]}>
+                          {rev.puntuacion.toFixed(1)}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.reviewDetail, { color: colors.muted }]}>
+                      {rev.detalle}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -483,6 +492,7 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
             Descontamos el cupo de tu entrada. Podés seguir su estado o enviar el comprobante al organizador por chat.
           </Text>
           <Pressable
+            testID="go-to-compras-btn"
             onPress={() => {
               setSuccessSheetVisible(false);
               router.push(defaultMyEventsView ? "/mis-compras" : "/(tabs)/central");

@@ -6,6 +6,7 @@ import eventoRoutes from "./eventoRoutes.js";
 import compraRoutes from "./compraRoutes.js";
 import reseniaRoutes from "./reseniaRoutes.js";
 import organizadorRoutes from "./organizadorRoutes.js";
+import mensajeRoutes from "./mensajeRoutes.js";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use("/eventos", eventoRoutes);
 router.use("/compras", compraRoutes);
 router.use("/resenias", reseniaRoutes);
 router.use("/organizadores", organizadorRoutes);
+router.use("/mensajes", mensajeRoutes);
 
 export default router;

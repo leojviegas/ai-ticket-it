@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
+    "start:watch": "node --watch index.js",
     "dev": "node --watch index.js",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "mutation": "cross-env NODE_OPTIONS=--experimental-vm-modules stryker run"

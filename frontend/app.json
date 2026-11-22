@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.aiticketit.app",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#0D3B66",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

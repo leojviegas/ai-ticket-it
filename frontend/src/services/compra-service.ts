@@ -31,7 +31,7 @@ export const compraService = {
 
   actualizarEstado(
     compraId: number,
-    estado: Extract<EstadoCompraType, "CONFIRMADA" | "UTILIZADA" | "REEMBOLSADA">
+    estado: Extract<EstadoCompraType, "CONFIRMADA" | "REEMBOLSADA">
   ): Promise<Compra> {
     return apiRequest<Compra>(`/compras/${compraId}/estado`, {
       method: "PATCH",

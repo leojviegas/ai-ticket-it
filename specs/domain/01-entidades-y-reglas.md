@@ -116,12 +116,18 @@ export const EstadoCompra = Object.freeze({
 ### 4.5. `Mensaje` (`mensaje.js`)
 - **Atributos**:
   - `id: Number (Int autoincremental: 1, 2, 3...)`
-  - `usuario: Usuario`
-  - `mensaje: String`
+  - `remitente: Usuario`
+  - `destinatario: Usuario`
+  - `mensaje: String` (puede ser `""` si incluye `adjunto`)
   - `enviado: Date` (default `new Date()`)
+  - `adjunto: { nombre: String, tipoMime: String, contenido: String } | null` (default `null`; admite `image/jpeg`, `image/png`, `image/webp` y `application/pdf` en formato Data URI base64)
 - **Invariantes de Constructor**:
-  - Si `!usuario` → `DomainValidationError("El usuario emisor del mensaje es obligatorio")`.
-  - Si `!mensaje || typeof mensaje !== "string" || !mensaje.trim()` → `DomainValidationError("El contenido del mensaje no puede estar vacío")`.
+  - Si `!remitente` → `DomainValidationError("El usuario remitente del mensaje es obligatorio")`.
+  - Si `!destinatario` → `DomainValidationError("El usuario destinatario del mensaje es obligatorio")`.
+  - Si `remitente.id === destinatario.id` → `DomainValidationError("El remitente y el destinatario no pueden ser el mismo usuario")`.
+  - Si `typeof mensaje !== "string"` → `DomainValidationError("El contenido del mensaje debe ser texto")`.
+  - Si se informa `adjunto !== null`, debe ser un objeto con `nombre` no vacío, `tipoMime` permitido (`image/jpeg`, `image/png`, `image/webp`, `application/pdf`) y `contenido` que comience con ``data:${tipoMime};base64,`` seguido de cuerpo no vacío; de lo contrario lanza `DomainValidationError("El adjunto debe ser una imagen (JPG, PNG, WEBP) o PDF válido")`.
+  - Si `mensaje.trim() === "" && !adjunto` → `DomainValidationError("El mensaje debe tener texto o un archivo adjunto")`.
 
 ---
 
@@ -159,11 +165,14 @@ export const EstadoCompra = Object.freeze({
   - **`cancelar(quien = this.comprador, fechaActual = new Date()): void`**:
     - Implementa los Casos de Uso 7 y 8: verifica que `this.estado !== EstadoCompra.UTILIZADA`, que no esté ya `CANCELADA`/`REEMBOLSADA`, y que `!this.evento.yaOcurrio(fechaActual)`.
     - Transiciona a `CANCELADA` (registrando el `CambioEstadoCompra`) y restituye el cupo en `this.tipoEntrada`. Luego el organizador podrá pasarla de `CANCELADA` a `REEMBOLSADA`.
+  - **`sincronizarEstadoPorFecha(fechaActual = new Date()): boolean`**:
+    - Si `this.estado === EstadoCompra.CONFIRMADA` y `this.evento.yaOcurrio(fechaActual)`, transiciona automáticamente la compra a `EstadoCompra.UTILIZADA` registrando `CambioEstadoCompra` con `quien = this.evento.organizador` y `fechaHora = this.evento.fecha`, y retorna `true`; en caso contrario retorna `false`.
   - **`reembolsar(quien = this.evento.organizador, fechaActual = new Date()): void`**:
     - Verifica que la compra esté en estado `CANCELADA` y llama a `this.actualizarEstado(EstadoCompra.REEMBOLSADA, quien, fechaActual)`.
-  - **`agregarMensaje(usuario: Usuario, texto: String, enviado = new Date()): Mensaje`**:
-    - Verifica que `usuario.id === this.comprador.id || usuario.id === this.evento.organizador.id`. Si es otro usuario, lanza `DomainValidationError("Solo el comprador o el organizador del evento pueden enviar mensajes en esta compra")`.
-    - Crea `new Mensaje({ usuario, mensaje: texto, enviado })`, lo añade a `this.mensajes` y lo retorna.
+  - **`agregarMensaje(remitente: Usuario, texto?: String, enviado?: Date, adjunto?: Object | null): Mensaje`**:
+    - Verifica que `remitente.id === this.comprador.id || remitente.id === this.evento.organizador.id`. Si es otro usuario, lanza `DomainValidationError("Solo el comprador o el organizador del evento pueden enviar mensajes en esta compra")`.
+    - Deduce `destinatario = remitente.id === this.comprador.id ? this.evento.organizador : this.comprador`.
+    - Crea `new Mensaje({ remitente, destinatario, mensaje: texto, enviado, adjunto })`, lo añade a `this.mensajes` y lo retorna.
   - **`calcularDiasParaEvento(fechaReferencia = new Date()): Number | null`**:
     - Si `this.estado !== EstadoCompra.CONFIRMADA` retorna `null` (Caso de Uso 1).
     - Si está `CONFIRMADA`, retorna `Math.max(0, Math.ceil((this.evento.fecha.getTime() - fechaReferencia.getTime()) / 86400000))`.

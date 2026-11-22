@@ -3,8 +3,8 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { AppIcon } from "@/components/app-icon";
+import { useAuth } from "@/context/auth-context";
 import { usePreferences } from "@/context/preferences-context";
 import { categoriaService } from "@/services/categoria-service";
 import { eventoService } from "@/services/evento-service";
@@ -34,6 +35,17 @@ interface DraftTipoEntrada {
 export function CrearEventoScreen() {
   const router = useRouter();
   const { colors, theme } = usePreferences();
+  const { user, verifySession } = useAuth();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) {
+        router.replace("/(tabs)/perfil");
+        return;
+      }
+      void verifySession().catch(() => {});
+    }, [user, verifySession, router])
+  );
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [nombre, setNombre] = useState("");
@@ -229,6 +241,7 @@ export function CrearEventoScreen() {
         <View style={styles.field}>
           <Text style={[styles.label, { color: colors.muted }]}>NOMBRE DEL EVENTO</Text>
           <TextInput
+            testID="create-nombre"
             value={nombre}
             onChangeText={setNombre}
             placeholder="Ej. Noche de Jazz en Vivo"
@@ -245,6 +258,7 @@ export function CrearEventoScreen() {
         >
           <Text style={[styles.label, { color: colors.muted }]}>DESCRIPCIÓN</Text>
           <TextInput
+            testID="create-descripcion"
             value={descripcion}
             onChangeText={setDescripcion}
             multiline
@@ -486,6 +500,7 @@ export function CrearEventoScreen() {
       ) : null}
 
       <Pressable
+        testID="publish-event-btn"
         disabled={submitting}
         onPress={() => void handlePublish()}
         style={({ pressed }) => [

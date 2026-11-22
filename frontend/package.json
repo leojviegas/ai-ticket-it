@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "cypress": "^16.3.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -45,7 +46,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test:e2e": "node -e \"delete process.env.ELECTRON_RUN_AS_NODE; require('child_process').execSync('npx cypress run', { stdio: 'inherit' });\"",
+    "test:e2e:open": "node -e \"delete process.env.ELECTRON_RUN_AS_NODE; require('child_process').execSync('npx cypress open', { stdio: 'inherit' });\""
   },
   "private": true
 }

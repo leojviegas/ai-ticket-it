@@ -10,6 +10,7 @@ import {
   NotFoundError,
   ConflictError,
   BusinessRuleError,
+  ForbiddenError,
 } from "../services/errors/ServiceError.js";
 import { RequestValidationError } from "../controllers/errors/ControllerError.js";
 
@@ -17,6 +18,7 @@ const HTTP_STATUS_BY_ERROR = [
   [RequestValidationError, 400],
   [DomainValidationError, 400],
   [BusinessRuleError, 400],
+  [ForbiddenError, 403],
   [EntityNotFoundError, 404],
   [NotFoundError, 404],
   [InvalidStateTransitionError, 409],

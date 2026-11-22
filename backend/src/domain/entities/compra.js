@@ -89,18 +89,33 @@ export class Compra {
     this.actualizarEstado(EstadoCompra.REEMBOLSADA, quien, fechaActual);
   }
 
-  agregarMensaje(usuario, texto, enviado = new Date()) {
-    if (!usuario) {
-      throw new DomainValidationError("El usuario emisor del mensaje es obligatorio");
+  sincronizarEstadoPorFecha(fechaActual = new Date()) {
+    if (this.estado === EstadoCompra.CONFIRMADA && this.evento.yaOcurrio(fechaActual)) {
+      this.actualizarEstado(EstadoCompra.UTILIZADA, this.evento.organizador, this.evento.fecha);
+      return true;
     }
-    const esComprador = usuario.id === this.comprador.id;
-    const esOrganizador = usuario.id === this.evento.organizador.id;
+    return false;
+  }
+
+  agregarMensaje(remitente, texto = "", enviado = new Date(), adjunto = null) {
+    if (!remitente) {
+      throw new DomainValidationError("El usuario remitente del mensaje es obligatorio");
+    }
+    const esComprador = remitente.id === this.comprador.id;
+    const esOrganizador = remitente.id === this.evento.organizador.id;
     if (!esComprador && !esOrganizador) {
       throw new DomainValidationError(
         "Solo el comprador o el organizador del evento pueden enviar mensajes en esta compra"
       );
     }
-    const nuevoMensaje = new Mensaje({ usuario, mensaje: texto, enviado });
+    const destinatario = esComprador ? this.evento.organizador : this.comprador;
+    const nuevoMensaje = new Mensaje({
+      remitente,
+      destinatario,
+      mensaje: texto,
+      enviado,
+      adjunto,
+    });
     this.mensajes.push(nuevoMensaje);
     return nuevoMensaje;
   }

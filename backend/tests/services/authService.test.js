@@ -96,4 +96,25 @@ describe("AuthService", () => {
       authService.login({ email: "sinclave@example.com", password: "cualquiera" })
     ).rejects.toMatchObject({ status: 401, message: "Credenciales inválidas" });
   });
+
+  test("obtenerUsuarioActual devuelve los datos frescos del usuario y rechaza con 401 si ya no existe en memoria", async () => {
+    const { usuario } = await authService.register({
+      nombre: "Sofía",
+      apellido: "Martínez",
+      email: "sofia@example.com",
+      password: "Password123",
+    });
+
+    const actual = authService.obtenerUsuarioActual(usuario.id);
+    expect(actual).toEqual({
+      id: 1,
+      nombre: "Sofía",
+      apellido: "Martínez",
+      email: "sofia@example.com",
+      favoritosIds: [],
+    });
+    expect(actual.passwordHash).toBeUndefined();
+
+    expect(() => authService.obtenerUsuarioActual(99999)).toThrow("La sesión ya no es válida");
+  });
 });
