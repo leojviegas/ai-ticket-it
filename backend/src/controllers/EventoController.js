@@ -42,7 +42,10 @@ export class EventoController {
       );
     }
     const organizadorId = req.user ? req.user.id : filtros.organizadorId;
-    const resultado = this.eventoService.obtenerComprasYDisponibilidad(id, { organizadorId });
+    const resultado = this.eventoService.obtenerComprasYDisponibilidad(id, {
+      organizadorId,
+      estado: filtros.estado,
+    });
     res.json(resultado);
   };
 }

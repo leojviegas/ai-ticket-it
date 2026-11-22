@@ -40,7 +40,11 @@ export class CompraController {
 
     if (req.user) {
       if (filtros.eventoId !== undefined && filtros.compradorId === undefined) {
-        const comprasEvento = this.compraService.listarCompras({ eventoId: filtros.eventoId });
+        const comprasEvento = this.compraService.listarCompras({
+          eventoId: filtros.eventoId,
+          estado: filtros.estado,
+          soloFuturos: filtros.soloFuturos,
+        });
         const visibles = comprasEvento.filter(
           (c) => c.comprador.id === req.user.id || c.evento.organizador.id === req.user.id
         );
