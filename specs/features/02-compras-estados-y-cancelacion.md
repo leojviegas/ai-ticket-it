@@ -44,7 +44,7 @@
 
 - [ ] No es posible comprar más entradas que el `cupo` disponible del `TipoEntrada` seleccionado.
 - [ ] Toda compra nueva nace en estado `PENDIENTE` y pasa a `CONFIRMADA` cuando el organizador la confirma.
-- [ ] Cuando llega la fecha y hora del evento (`evento.fecha <= ahora`), toda compra en estado `CONFIRMADA` pasa automáticamente a estado `UTILIZADA` sin intervención manual.
+- [ ] Cuando llega la fecha y hora del evento (`evento.fecha <= ahora`), toda compra en estado `CONFIRMADA` pasa automáticamente a `UTILIZADA` y toda compra en estado `PENDIENTE` se cancela automáticamente (`CANCELADA`) restituyendo su cupo sin intervención manual.
 - [ ] En las compras del usuario, aquellas en estado `CONFIRMADA` muestran exactamente cuántos días faltan para el evento; las compras en otros estados no muestran dicho contador.
 - [ ] El organizador visualiza para cada evento tanto el cupo remanente de cada `TipoEntrada` como las compras realizadas y sus estados.
 - [ ] Si una compra está `PENDIENTE` o `CONFIRMADA` y el evento es futuro, tanto el comprador como el organizador pueden cancelarla pasando a `CANCELADA` y devolviendo el cupo al `TipoEntrada`.

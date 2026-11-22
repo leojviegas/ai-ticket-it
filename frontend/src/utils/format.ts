@@ -85,7 +85,7 @@ export function getConfirmedCountdownLabel(
   diasParaEvento: number | null
 ): string {
   if (isSameCalendarDay(eventoFechaIso)) {
-    return "Hoy! 🥳";
+    return "Es Hoy! 🥳";
   }
   const dias = Math.max(1, diasParaEvento ?? 1);
   return dias === 1 ? "Falta 1 día para el evento" : `Faltan ${dias} días para el evento`;

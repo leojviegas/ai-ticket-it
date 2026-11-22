@@ -12,7 +12,7 @@ Especificar las reglas de transición entre los valores de `EstadoCompra`, su im
 stateDiagram-v2
     [*] --> PENDIENTE : Comprador realiza la compra (descuenta cupo)
     PENDIENTE --> CONFIRMADA : Organizador confirma la compra
-    PENDIENTE --> CANCELADA : Comprador u Organizador cancela [Si evento aún no ocurrió] (restituye cupo)
+    PENDIENTE --> CANCELADA : Comprador u Organizador cancela antes del evento, o automático al llegar evento.fecha (restituye cupo)
     CONFIRMADA --> UTILIZADA : Transición automática al llegar evento.fecha [Habilita Reseña]
     CONFIRMADA --> CANCELADA : Comprador u Organizador cancela [Si evento aún no ocurrió] (restituye cupo)
     CANCELADA --> REEMBOLSADA : Organizador emite el reembolso
@@ -24,7 +24,7 @@ stateDiagram-v2
 
 | Estado Actual | Estados Destino Permitidos | Quién dispara la acción | Estados Destino Prohibidos (`InvalidStateTransitionError`) |
 | :--- | :--- | :--- | :--- |
-| **`PENDIENTE`** | `CONFIRMADA`, `CANCELADA` | Organizador (`CONFIRMADA`) / Comprador u Organizador (`CANCELADA`) | `PENDIENTE`, `UTILIZADA`, `REEMBOLSADA` |
+| **`PENDIENTE`** | `CONFIRMADA`, `CANCELADA` | Organizador (`CONFIRMADA`) / Comprador, Organizador o Automático al cumplirse `evento.fecha` (`CANCELADA`) | `PENDIENTE`, `UTILIZADA`, `REEMBOLSADA` |
 | **`CONFIRMADA`** | `UTILIZADA`, `CANCELADA` | Automático al cumplirse `evento.fecha` (`UTILIZADA` vía `sincronizarEstadoPorFecha`) / Comprador u Organizador (`CANCELADA` antes del evento) | `PENDIENTE`, `CONFIRMADA`, `REEMBOLSADA` |
 | **`UTILIZADA`** | *(Estado terminal)* | — | Todos (`PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA`, `REEMBOLSADA`) |
 | **`CANCELADA`** | `REEMBOLSADA` | Organizador (`REEMBOLSADA`) | `PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA` |
@@ -38,8 +38,10 @@ stateDiagram-v2
    - Toda nueva compra nace en `EstadoCompra.PENDIENTE`, reservando/descontando inmediatamente la `cantidad` del `cupo` disponible en `TipoEntrada` y registrando el `CambioEstadoCompra` inicial.
 2. **Confirmación de la Compra (`PENDIENTE` → `CONFIRMADA`)**:
    - El organizador confirma la compra y pasa a `CONFIRMADA`.
-3. **Paso automático a `UTILIZADA` (`CONFIRMADA` → `UTILIZADA`)**:
-   - No se dispara manualmente desde el panel ni por `PATCH /api/compras/:id/estado`. Cuando `compra.estado === EstadoCompra.CONFIRMADA` y `evento.yaOcurrio(ahora)` (`evento.fecha <= ahora`), `Compra.sincronizarEstadoPorFecha()` transiciona la compra automáticamente a **`UTILIZADA`** dejando el `CambioEstadoCompra` con la fecha del evento.
+3. **Transiciones automáticas al llegar `evento.fecha` (`sincronizarEstadoPorFecha`)**:
+   - Cuando `evento.yaOcurrio(ahora)` (`evento.fecha <= ahora`):
+     - Si `compra.estado === EstadoCompra.CONFIRMADA`, pasa automáticamente a **`UTILIZADA`** (sin acción manual desde el panel ni por `PATCH /api/compras/:id/estado`), registrando el `CambioEstadoCompra` con la fecha del evento.
+     - Si `compra.estado === EstadoCompra.PENDIENTE`, se cancela automáticamente pasando a **`CANCELADA`**, restituyendo el cupo al `TipoEntrada` y registrando el `CambioEstadoCompra` con la fecha del evento (evitando compras pendientes bloqueadas tras ocurrir el evento).
 4. **Días faltantes para el evento (Caso de Uso 1)**:
    - Solo se informan cuando `compra.estado === EstadoCompra.CONFIRMADA`.
    - En estados `PENDIENTE`, `UTILIZADA`, `CANCELADA` o `REEMBOLSADA`, `calcularDiasParaEvento()` devuelve `null`.

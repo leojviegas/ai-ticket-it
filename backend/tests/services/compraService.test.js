@@ -106,6 +106,48 @@ describe("CompraService", () => {
     expect(resenia.eventoId).toBe(4);
   });
 
+  test("cancela automáticamente compras PENDIENTE al alcanzarse evento.fecha restituyendo cupo y ordena soloFuturos de más cercano a más lejano", () => {
+    // Compra 6 (Mateo 4) está PENDIENTE en evento 5 (AI & Software Summit, +6 días), tipoEntrada 203 cupo 39
+    const compra6Antes = compraService.obtenerCompraPorId(6);
+    expect(compra6Antes.estado).toBe(EstadoCompra.PENDIENTE);
+    const cupoAntes = eventoService
+      .obtenerEventoDetalle(5)
+      .tiposEntrada.find((t) => t.id === 203).cupo;
+
+    // Además creamos una compra futura más lejana (evento 4, +12 días) para Mateo y verificamos orden estricto
+    compraService.crearCompra({
+      compradorId: 4,
+      eventoId: 4,
+      tipoEntradaId: 201,
+      cantidad: 1,
+    });
+    const futurasMateo = compraService.listarCompras({
+      compradorId: 4,
+      soloFuturos: true,
+    });
+    expect(futurasMateo.length).toBeGreaterThanOrEqual(2);
+    for (let i = 1; i < futurasMateo.length; i += 1) {
+      expect(new Date(futurasMateo[i - 1].evento.fecha).getTime()).toBeLessThanOrEqual(
+        new Date(futurasMateo[i].evento.fecha).getTime()
+      );
+    }
+
+    // Al llegar la fecha del evento 5, la compra 6 PENDIENTE se cancela automáticamente y devuelve cupo
+    const fechaEvento5 = new Date(compra6Antes.evento.fecha);
+    const comprasMateo = compraService.listarCompras({
+      compradorId: 4,
+      fechaActual: fechaEvento5,
+    });
+    const compra6Despues = comprasMateo.find((c) => c.id === 6);
+    expect(compra6Despues.estado).toBe(EstadoCompra.CANCELADA);
+    expect(compra6Despues.cambiosEstado.at(-1).estado).toBe(EstadoCompra.CANCELADA);
+
+    const cupoDespues = eventoService
+      .obtenerEventoDetalle(5)
+      .tiposEntrada.find((t) => t.id === 203).cupo;
+    expect(cupoDespues).toBe(cupoAntes + 1);
+  });
+
   test("permite al comprador y al organizador intercambiar mensajes en el chat en cualquier estado", () => {
     const res1 = compraService.agregarMensaje(7, {
       usuarioId: 3, // Valentina (compradora de compra 7 CANCELADA)

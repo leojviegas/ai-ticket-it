@@ -357,9 +357,41 @@ describe("Compra", () => {
     expect(compraPasadaSinFecha.sincronizarEstadoPorFecha()).toBe(true);
     expect(compraPasadaSinFecha.estado).toBe(EstadoCompra.UTILIZADA);
 
-    // Estados no confirmados permanecen sin cambios aunque el evento haya ocurrido
+    // Una compra PENDIENTE antes de la fecha del evento no cambia ni restituye cupo
+    tipoEntrada.descontarCupo(2);
+    expect(tipoEntrada.cupo).toBe(48);
+    const compraPendiente = new Compra({
+      comprador,
+      evento: eventoFuturo, // 2026-11-10T20:00:00.000Z
+      tipoEntrada,
+      cantidad: 2,
+      estado: EstadoCompra.PENDIENTE,
+    });
+    expect(
+      compraPendiente.sincronizarEstadoPorFecha(new Date("2026-11-10T19:59:59.999Z"))
+    ).toBe(false);
+    expect(compraPendiente.estado).toBe(EstadoCompra.PENDIENTE);
+    expect(tipoEntrada.cupo).toBe(48);
+
+    // Al llegar la fecha del evento, la compra PENDIENTE se cancela automáticamente y restituye cupo
+    expect(
+      compraPendiente.sincronizarEstadoPorFecha(new Date("2026-11-10T20:00:00.000Z"))
+    ).toBe(true);
+    expect(compraPendiente.estado).toBe(EstadoCompra.CANCELADA);
+    expect(tipoEntrada.cupo).toBe(50);
+    expect(compraPendiente.cambiosEstado).toHaveLength(2);
+    expect(compraPendiente.cambiosEstado[1].estado).toBe(EstadoCompra.CANCELADA);
+    expect(compraPendiente.cambiosEstado[1].quien).toBe(organizador);
+    expect(compraPendiente.cambiosEstado[1].fechaHora).toEqual(eventoFuturo.fecha);
+
+    // Invocar nuevamente sobre la compra ya cancelada no vuelve a restituir cupo
+    expect(
+      compraPendiente.sincronizarEstadoPorFecha(new Date("2026-11-12T20:00:00.000Z"))
+    ).toBe(false);
+    expect(tipoEntrada.cupo).toBe(50);
+
+    // Estados finales o ya cancelados permanecen sin cambios aunque el evento haya ocurrido
     for (const estado of [
-      EstadoCompra.PENDIENTE,
       EstadoCompra.UTILIZADA,
       EstadoCompra.CANCELADA,
       EstadoCompra.REEMBOLSADA,

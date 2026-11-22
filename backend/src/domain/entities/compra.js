@@ -90,8 +90,16 @@ export class Compra {
   }
 
   sincronizarEstadoPorFecha(fechaActual = new Date()) {
-    if (this.estado === EstadoCompra.CONFIRMADA && this.evento.yaOcurrio(fechaActual)) {
+    if (!this.evento.yaOcurrio(fechaActual)) {
+      return false;
+    }
+    if (this.estado === EstadoCompra.CONFIRMADA) {
       this.actualizarEstado(EstadoCompra.UTILIZADA, this.evento.organizador, this.evento.fecha);
+      return true;
+    }
+    if (this.estado === EstadoCompra.PENDIENTE) {
+      this.actualizarEstado(EstadoCompra.CANCELADA, this.evento.organizador, this.evento.fecha);
+      this.tipoEntrada.restituirCupo(this.cantidad);
       return true;
     }
     return false;

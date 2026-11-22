@@ -43,6 +43,8 @@ describe("03 - Detalle, Perfil del Organizador, Compra, Seguimiento y CancelaciÃ
     cy.get('[data-testid="ticket-plus-201"]').click();
     cy.intercept("POST", "**/api/compras").as("crearCompra");
     cy.get('[data-testid="buy-submit-btn"]').click();
+    cy.contains("Confirmar compra").should("be.visible");
+    cy.get('[data-testid="confirm-buy-btn"]').click();
 
     cy.wait("@crearCompra").then((interception) => {
       expect(interception.response.statusCode).to.eq(201);

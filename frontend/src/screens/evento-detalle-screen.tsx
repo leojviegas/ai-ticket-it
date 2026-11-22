@@ -39,6 +39,7 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState<string | null>(null);
+  const [confirmSheetVisible, setConfirmSheetVisible] = useState(false);
   const [successSheetVisible, setSuccessSheetVisible] = useState(false);
   const hasLoadedRef = useRef(false);
 
@@ -74,21 +75,27 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
     }, [cargarDetalle])
   );
 
-  const totalSeleccionado = useMemo(() => {
+  const selectedItems = useMemo(() => {
     if (!detalle) {
-      return { amount: 0, count: 0 };
+      return [];
     }
-    return detalle.tiposEntrada.reduce(
-      (acc, tipo) => {
-        const qty = quantities[tipo.id] || 0;
-        return {
-          amount: acc.amount + qty * tipo.precio,
-          count: acc.count + qty,
-        };
-      },
+    return detalle.tiposEntrada
+      .map((tipo) => ({
+        tipo,
+        cantidad: quantities[tipo.id] || 0,
+      }))
+      .filter((item) => item.cantidad > 0);
+  }, [detalle, quantities]);
+
+  const totalSeleccionado = useMemo(() => {
+    return selectedItems.reduce(
+      (acc, item) => ({
+        amount: acc.amount + item.cantidad * item.tipo.precio,
+        count: acc.count + item.cantidad,
+      }),
       { amount: 0, count: 0 }
     );
-  }, [detalle, quantities]);
+  }, [selectedItems]);
 
   if (loading && !detalle) {
     return <LoadingView message="Cargando detalle del evento..." />;
@@ -116,32 +123,42 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
     });
   };
 
-  const handleComprar = async () => {
+  const handleOpenConfirmSheet = () => {
     if (!user) {
       router.push("/(tabs)/perfil");
       return;
     }
-    const seleccionadas = Object.entries(quantities)
-      .map(([id, qty]) => ({ tipoEntradaId: Number(id), cantidad: qty }))
-      .filter((item) => item.cantidad > 0);
+    if (selectedItems.length === 0) {
+      return;
+    }
+    setBuyError(null);
+    setConfirmSheetVisible(true);
+  };
 
-    if (seleccionadas.length === 0) {
+  const handleComprar = async () => {
+    if (!user) {
+      setConfirmSheetVisible(false);
+      router.push("/(tabs)/perfil");
+      return;
+    }
+    if (selectedItems.length === 0) {
       return;
     }
 
     setBuying(true);
     setBuyError(null);
     try {
-      for (const item of seleccionadas) {
+      for (const item of selectedItems) {
         await compraService.crear({
           eventoId: detalle.id,
-          tipoEntradaId: item.tipoEntradaId,
+          tipoEntradaId: item.tipo.id,
           cantidad: item.cantidad,
         });
       }
       if (process.env.EXPO_OS === "ios") {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
+      setConfirmSheetVisible(false);
       setQuantities({});
       await cargarDetalle(false);
       setSuccessSheetVisible(true);
@@ -381,7 +398,7 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
             <Pressable
               testID="buy-submit-btn"
               disabled={detalle.yaOcurrio || totalSeleccionado.count === 0 || buying}
-              onPress={() => void handleComprar()}
+              onPress={handleOpenConfirmSheet}
               style={({ pressed }) => [
                 styles.buyBtn,
                 {
@@ -471,6 +488,102 @@ export function EventoDetalleScreen({ eventoId }: { eventoId: number }) {
           ) : null}
         </View>
       </ScrollView>
+
+      <BottomSheet
+        visible={confirmSheetVisible}
+        onClose={() => {
+          if (!buying) {
+            setConfirmSheetVisible(false);
+          }
+        }}
+      >
+        <View style={styles.confirmBox}>
+          <Text style={[styles.confirmTitle, { color: colors.text }]}>
+            Confirmar compra
+          </Text>
+          <Text style={[styles.confirmLead, { color: colors.muted }]}>
+            {selectedItems.length === 1
+              ? `Confirmar compra de ${selectedItems[0].tipo.nombre} por ${selectedItems[0].cantidad} ${selectedItems[0].cantidad === 1 ? "entrada" : "entradas"} para ${detalle.nombre}.`
+              : `Confirmar compra de ${totalSeleccionado.count} entradas para ${detalle.nombre}:`}
+          </Text>
+
+          <View
+            style={[
+              styles.confirmCard,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.hairline,
+              },
+            ]}
+          >
+            {selectedItems.map((item) => (
+              <View key={item.tipo.id} style={styles.confirmRow}>
+                <Text style={[styles.confirmItemText, { color: colors.text }]}>
+                  {item.cantidad}x {item.tipo.nombre}
+                </Text>
+                <Text style={[styles.confirmPriceText, { color: colors.text }]}>
+                  {formatCurrencyARS(item.cantidad * item.tipo.precio)}
+                </Text>
+              </View>
+            ))}
+
+            <View
+              style={[
+                styles.confirmTotalRow,
+                { borderTopColor: colors.hairline },
+              ]}
+            >
+              <Text style={[styles.confirmTotalLabel, { color: colors.text }]}>
+                Monto total
+              </Text>
+              <Text style={[styles.confirmTotalValue, { color: colors.primary }]}>
+                {formatCurrencyARS(totalSeleccionado.amount)}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={[styles.confirmDisclaimer, { color: colors.muted }]}>
+            Esta operación reserva tu cupo, pero no mueve dinero. Para abonar las
+            entradas, contactate con el organizador del evento.
+          </Text>
+
+          {buyError ? (
+            <Text style={[styles.buyError, { color: colors.dangerFg }]} selectable>
+              {buyError}
+            </Text>
+          ) : null}
+
+          <View style={styles.confirmButtons}>
+            <Pressable
+              disabled={buying}
+              onPress={() => setConfirmSheetVisible(false)}
+              style={[
+                styles.confirmSecondaryBtn,
+                { backgroundColor: colors.surfaceSecondary, opacity: buying ? 0.5 : 1 },
+              ]}
+            >
+              <Text style={[styles.confirmSecondaryText, { color: colors.text }]}>
+                Volver
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="confirm-buy-btn"
+              disabled={buying || totalSeleccionado.count === 0}
+              onPress={() => void handleComprar()}
+              style={[
+                styles.confirmPrimaryBtn,
+                { backgroundColor: colors.accent, opacity: buying ? 0.65 : 1 },
+              ]}
+            >
+              {buying ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.confirmPrimaryText}>Confirmar compra</Text>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </BottomSheet>
 
       <BottomSheet
         visible={successSheetVisible}
@@ -728,6 +841,52 @@ const styles = StyleSheet.create({
   },
   reviewScoreText: { fontSize: 12, fontWeight: "800" },
   reviewDetail: { fontSize: 13, lineHeight: 18 },
+  confirmBox: { gap: spacing.md, paddingVertical: spacing.xs },
+  confirmTitle: { fontSize: 18, fontWeight: "800" },
+  confirmLead: { fontSize: 13, lineHeight: 19 },
+  confirmCard: {
+    borderRadius: radius.lg,
+    borderCurve: "continuous",
+    borderWidth: 1,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  confirmRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  confirmItemText: { fontSize: 13, fontWeight: "700", flex: 1 },
+  confirmPriceText: { fontSize: 13, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  confirmTotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 1,
+    paddingTop: spacing.sm,
+    marginTop: 2,
+  },
+  confirmTotalLabel: { fontSize: 14, fontWeight: "800" },
+  confirmTotalValue: { fontSize: 16, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  confirmDisclaimer: { fontSize: 11, lineHeight: 16 },
+  confirmButtons: { flexDirection: "row", gap: spacing.sm },
+  confirmSecondaryBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmSecondaryText: { fontSize: 13, fontWeight: "700" },
+  confirmPrimaryBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmPrimaryText: { color: "#FFFFFF", fontSize: 13, fontWeight: "800" },
   successBox: {
     alignItems: "center",
     gap: spacing.sm,

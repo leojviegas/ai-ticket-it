@@ -166,7 +166,10 @@ export const EstadoCompra = Object.freeze({
     - Implementa los Casos de Uso 7 y 8: verifica que `this.estado !== EstadoCompra.UTILIZADA`, que no esté ya `CANCELADA`/`REEMBOLSADA`, y que `!this.evento.yaOcurrio(fechaActual)`.
     - Transiciona a `CANCELADA` (registrando el `CambioEstadoCompra`) y restituye el cupo en `this.tipoEntrada`. Luego el organizador podrá pasarla de `CANCELADA` a `REEMBOLSADA`.
   - **`sincronizarEstadoPorFecha(fechaActual = new Date()): boolean`**:
-    - Si `this.estado === EstadoCompra.CONFIRMADA` y `this.evento.yaOcurrio(fechaActual)`, transiciona automáticamente la compra a `EstadoCompra.UTILIZADA` registrando `CambioEstadoCompra` con `quien = this.evento.organizador` y `fechaHora = this.evento.fecha`, y retorna `true`; en caso contrario retorna `false`.
+    - Si `this.evento.yaOcurrio(fechaActual)`:
+      - En estado `EstadoCompra.CONFIRMADA`, transiciona automáticamente la compra a `EstadoCompra.UTILIZADA` registrando `CambioEstadoCompra` con `quien = this.evento.organizador` y `fechaHora = this.evento.fecha`, y retorna `true`.
+      - En estado `EstadoCompra.PENDIENTE`, cancela automáticamente la compra pasando a `EstadoCompra.CANCELADA`, restituye `this.cantidad` al cupo del `TipoEntrada`, registra `CambioEstadoCompra` con `quien = this.evento.organizador` y `fechaHora = this.evento.fecha`, y retorna `true`.
+    - En cualquier otro caso retorna `false`.
   - **`reembolsar(quien = this.evento.organizador, fechaActual = new Date()): void`**:
     - Verifica que la compra esté en estado `CANCELADA` y llama a `this.actualizarEstado(EstadoCompra.REEMBOLSADA, quien, fechaActual)`.
   - **`agregarMensaje(remitente: Usuario, texto?: String, enviado?: Date, adjunto?: Object | null): Mensaje`**:

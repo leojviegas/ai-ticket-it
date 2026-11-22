@@ -20,8 +20,10 @@ Durante las pruebas reales de la aplicación mobile se detectaron tres desajuste
 1. **Cancelación por Organizador desde `PENDIENTE` y `CONFIRMADA`**:
    - Se elimina la restricción en `CompraService.cancelarCompra` que bloqueaba al organizador cancelar compras `CONFIRMADA`. Tanto comprador como organizador pueden ejecutar `POST /api/compras/:id/cancelar` en `PENDIENTE` o `CONFIRMADA` mientras el evento no haya ocurrido (`evento.fecha > ahora`), restituyendo el cupo y registrando `CambioEstadoCompra.quien`.
    - En `GestionEventoScreen`, al seleccionar compras `PENDIENTE` o `CONFIRMADA` de un evento futuro se habilita el botón **Cancelar** (`POST /api/compras/:id/cancelar`).
-2. **Transición Automática `CONFIRMADA -> UTILIZADA` sin acción manual**:
-   - Se agrega `Compra.sincronizarEstadoPorFecha(fechaActual)` en la entidad de dominio, invocada automáticamente en `CompraRepository.findById` y `CompraRepository.findAll`, de modo que cualquier lectura o verificación previa a operar evalúa `this.estado === EstadoCompra.CONFIRMADA && this.evento.yaOcurrio(fechaActual)` y transiciona a `UTILIZADA` registrando el `CambioEstadoCompra` con la fecha del evento.
+2. **Transiciones Automáticas al Alcanzarse `evento.fecha` (`CONFIRMADA -> UTILIZADA` y `PENDIENTE -> CANCELADA`)**:
+   - `Compra.sincronizarEstadoPorFecha(fechaActual)` (invocada automáticamente en `CompraRepository.findById` y `CompraRepository.findAll`) evalúa `this.evento.yaOcurrio(fechaActual)`:
+     - Si la compra está `CONFIRMADA`, transiciona automáticamente a `UTILIZADA` registrando el `CambioEstadoCompra` con la fecha del evento.
+     - Si la compra permaneció `PENDIENTE` al ocurrir el evento, se cancela automáticamente pasando a `CANCELADA`, restituye el cupo al `TipoEntrada` y registra el `CambioEstadoCompra` con la fecha del evento, evitando que queden compras pendientes bloqueadas sin transición posible.
    - Se elimina `UTILIZADA` de `actualizarEstadoCompraSchema` (`PATCH /api/compras/:id/estado`), se rechaza en `CompraService.actualizarEstado` con `BusinessRuleError`, y se quita el botón **Marcar utilizada** de `GestionEventoScreen`.
 3. **Atajo en el Banner del Chat (`ConversacionScreen`)**:
    - El banner superior de `ConversacionScreen` pasa a ser interactivo (`Pressable`): si el usuario autenticado es el organizador del evento navega a `/gestionar-evento/:eventoId`; si es el comprador, navega a `/evento/:eventoId`.

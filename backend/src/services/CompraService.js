@@ -79,7 +79,9 @@ export class CompraService {
     }
 
     if (soloFuturos === true || soloFuturos === "true") {
-      compras = compras.filter((c) => !c.evento.yaOcurrio(fechaActual));
+      compras = compras
+        .filter((c) => !c.evento.yaOcurrio(fechaActual))
+        .sort((a, b) => a.evento.fecha.getTime() - b.evento.fecha.getTime());
     }
 
     return compras.map((c) => this.enriquecerCompra(c));

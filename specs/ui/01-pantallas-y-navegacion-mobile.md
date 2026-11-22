@@ -68,13 +68,14 @@ Barra inferior (`Bottom Tabs`) de izquierda a derecha:
 - Debajo lista **todos sus eventos** (pasados y futuros, sin el filtro `soloFuturos`) mostrando junto a cada ítem el puntaje individual del evento (`puntajeEvento`) para compararlos de un golpe de vista. Al tocar un evento, navega a `EventoDetalleScreen` donde se listan las reseñas de ese evento.
 
 ### 2.4. `MisComprasScreen` y `CompraDetalleScreen` (CU 1, CU 5, CU 7, CU 8, CU 9)
-- **Filtros en `MisComprasScreen`**:
-  1. Primer selector segmentado: **`Todos`** | **`Futuros`** (envía `soloFuturos=true` a `GET /api/compras`).
-  2. Segunda fila de chips por estado: `Todos` + los 5 `EstadoCompra` (`PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA`, `REEMBOLSADA`), enviando `estado` a `GET /api/compras`.
+- **Filtros y ordenamiento en `MisComprasScreen`**:
+  1. Primer selector segmentado: **`Compras de eventos futuros`** (izquierda, predeterminado, envía `soloFuturos=true` a `GET /api/compras` y ordena estrictamente del evento más cercano al más lejano en el tiempo) | **`Historial de compras`** (derecha, todas las compras pasadas y futuras).
+  2. En **`Historial de compras`**, selector de orden por fecha del evento: **más antiguo a más futuro** (`asc`) o **más futuro a más antiguo** (`desc`).
+  3. Fila de chips por estado: `Todos` + los 5 `EstadoCompra` (`PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA`, `REEMBOLSADA`), enviando `estado` a `GET /api/compras`.
 - **Tarjetas y Detalle de Compra**:
   - Badge semántico con icono + texto según `EstadoCompra`:
-    - `PENDIENTE` (Ámbar + reloj): esperando confirmación del organizador.
-    - `CONFIRMADA` (Verde / Azul Okabe-Ito + tilde): si `evento.fecha` es hoy muestra **"Hoy! 🥳"**; si es posterior, **"Faltan X días para el evento"** (CU 1).
+    - `PENDIENTE` (Ámbar + reloj): esperando confirmación del organizador (si llega la fecha del evento sin confirmarse, se cancela automáticamente).
+    - `CONFIRMADA` (Verde / Azul Okabe-Ito + tilde): si `evento.fecha` es hoy muestra **"Es Hoy! 🥳"**; si es posterior, **"Faltan X días para el evento"** (CU 1).
     - `UTILIZADA` (Azul / Celeste + ticket): habilita **"Calificar evento"** (CU 9) si `!yaReseniado`.
     - `CANCELADA` (Rojo / Bermellón + cruz): pendiente de reembolso por el organizador.
     - `REEMBOLSADA` (Violeta / Púrpura + devolución): reembolso acreditado.

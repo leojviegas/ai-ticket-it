@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -37,6 +37,7 @@ import {
 } from "@/utils/format";
 
 type ScopeFilter = "todos" | "futuros";
+type HistorySortOrder = "asc" | "desc";
 type EstadoFilter = "TODOS" | EstadoCompraType;
 
 const ESTADOS_FILTRO: EstadoFilter[] = [
@@ -53,7 +54,8 @@ export function MisComprasScreen() {
   const { colors, theme } = usePreferences();
   const { user } = useAuth();
 
-  const [scope, setScope] = useState<ScopeFilter>("todos");
+  const [scope, setScope] = useState<ScopeFilter>("futuros");
+  const [historyOrder, setHistoryOrder] = useState<HistorySortOrder>("desc");
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFilter>("TODOS");
   const [compras, setCompras] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(false);
@@ -114,6 +116,25 @@ export function MisComprasScreen() {
     }, [cargarCompras])
   );
 
+  const sortedCompras = useMemo(() => {
+    const copy = [...compras];
+    copy.sort((a, b) => {
+      const timeA = new Date(a.evento.fecha).getTime();
+      const timeB = new Date(b.evento.fecha).getTime();
+      if (scope === "futuros") {
+        if (timeA !== timeB) {
+          return timeA - timeB;
+        }
+        return a.id - b.id;
+      }
+      if (timeA !== timeB) {
+        return historyOrder === "asc" ? timeA - timeB : timeB - timeA;
+      }
+      return historyOrder === "asc" ? a.id - b.id : b.id - a.id;
+    });
+    return copy;
+  }, [compras, scope, historyOrder]);
+
   if (!user) {
     return (
       <GuestRequiredView
@@ -170,7 +191,7 @@ export function MisComprasScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
-        data={compras}
+        data={sortedCompras}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
         refreshControl={
@@ -190,8 +211,8 @@ export function MisComprasScreen() {
             >
               {(
                 [
-                  ["todos", "Todos"],
-                  ["futuros", "Futuros"],
+                  ["futuros", "Compras de eventos futuros"],
+                  ["todos", "Historial de compras"],
                 ] as const
               ).map(([key, label]) => {
                 const active = scope === key;
@@ -220,6 +241,47 @@ export function MisComprasScreen() {
                 );
               })}
             </View>
+
+            {scope === "todos" ? (
+              <View testID="history-sort-row" style={styles.historySortRow}>
+                <Text style={[styles.historySortLabel, { color: colors.muted }]}>
+                  Orden por fecha del evento
+                </Text>
+                <View style={styles.historySortPills}>
+                  {(
+                    [
+                      ["asc", "Más antiguo → futuro"],
+                      ["desc", "Más futuro → antiguo"],
+                    ] as const
+                  ).map(([ord, lbl]) => {
+                    const active = historyOrder === ord;
+                    return (
+                      <Pressable
+                        key={ord}
+                        testID={`history-sort-${ord}`}
+                        onPress={() => setHistoryOrder(ord)}
+                        style={[
+                          styles.sortPill,
+                          {
+                            backgroundColor: active ? colors.primarySoft : colors.surface,
+                            borderColor: active ? colors.primary : colors.hairline,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.sortPillText,
+                            { color: active ? colors.primary : colors.muted },
+                          ]}
+                        >
+                          {lbl}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
 
             <ScrollView
               horizontal
@@ -587,11 +649,26 @@ const styles = StyleSheet.create({
   segmentBtn: {
     flex: 1,
     paddingVertical: 9,
+    paddingHorizontal: 8,
     borderRadius: radius.md,
     borderCurve: "continuous",
     alignItems: "center",
+    justifyContent: "center",
   },
-  segmentText: { fontSize: 13, fontWeight: "800" },
+  segmentText: { fontSize: 12, fontWeight: "800", textAlign: "center" },
+  historySortRow: { gap: 6 },
+  historySortLabel: { fontSize: 11, fontWeight: "700" },
+  historySortPills: { flexDirection: "row", gap: spacing.sm },
+  sortPill: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sortPillText: { fontSize: 11, fontWeight: "800", textAlign: "center" },
   chipsRow: { gap: spacing.sm, paddingVertical: 2 },
   chip: {
     paddingHorizontal: 12,
