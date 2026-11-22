@@ -39,25 +39,37 @@ describe("CompraService", () => {
   });
 
   test("ADR 002 DUDA-01: si el comprador cancela una compra PENDIENTE, el intento posterior del organizador de confirmarla lanza 409 (InvalidStateTransitionError)", () => {
-    // Compra 6: Mateo (4) en evento 5 de Sofía (1), estado PENDIENTE
-    const cancelada = compraService.cancelarCompra(6, { usuarioId: 4 });
+    // Compra PENDIENTE de Mateo (4) en evento 5 de Sofía (1)
+    const compraPendiente = compraService.crearCompra({
+      compradorId: 4,
+      eventoId: 5,
+      tipoEntradaId: 203,
+      cantidad: 1,
+    });
+    const cancelada = compraService.cancelarCompra(compraPendiente.id, { usuarioId: 4 });
     expect(cancelada.estado).toBe(EstadoCompra.CANCELADA);
 
     expect(() =>
-      compraService.actualizarEstado(6, {
+      compraService.actualizarEstado(compraPendiente.id, {
         estado: EstadoCompra.CONFIRMADA,
         usuarioId: 1,
       })
     ).toThrow(InvalidStateTransitionError);
 
     // El organizador (Sofía, id 1) sí puede pasarla a REEMBOLSADA
-    const reembolsada = compraService.reembolsarCompra(6, { usuarioId: 1 });
+    const reembolsada = compraService.reembolsarCompra(compraPendiente.id, { usuarioId: 1 });
     expect(reembolsada.estado).toBe(EstadoCompra.REEMBOLSADA);
   });
 
   test("ADR 005: el organizador puede cancelar compras PENDIENTE y CONFIRMADA antes del evento, rechazando terceros", () => {
-    // Compra 6 está PENDIENTE y su organizadora es Sofía (1)
-    const canceladaPorOrg = compraService.cancelarCompra(6, { usuarioId: 1 });
+    // Compra PENDIENTE de Mateo (4) en evento 5 cuya organizadora es Sofía (1)
+    const compraPendiente = compraService.crearCompra({
+      compradorId: 4,
+      eventoId: 5,
+      tipoEntradaId: 203,
+      cantidad: 1,
+    });
+    const canceladaPorOrg = compraService.cancelarCompra(compraPendiente.id, { usuarioId: 1 });
     expect(canceladaPorOrg.estado).toBe(EstadoCompra.CANCELADA);
     expect(canceladaPorOrg.cambiosEstado.at(-1).quien.id).toBe(1);
 
@@ -107,9 +119,14 @@ describe("CompraService", () => {
   });
 
   test("cancela automáticamente compras PENDIENTE al alcanzarse evento.fecha restituyendo cupo y ordena soloFuturos de más cercano a más lejano", () => {
-    // Compra 6 (Mateo 4) está PENDIENTE en evento 5 (AI & Software Summit, +6 días), tipoEntrada 203 cupo 39
-    const compra6Antes = compraService.obtenerCompraPorId(6);
-    expect(compra6Antes.estado).toBe(EstadoCompra.PENDIENTE);
+    // Creamos una compra PENDIENTE de Mateo (4) en evento 5 (AI & Software Summit, +6 días), tipoEntrada 203 (cupo pasa de 40 a 39)
+    const compraPendienteAntes = compraService.crearCompra({
+      compradorId: 4,
+      eventoId: 5,
+      tipoEntradaId: 203,
+      cantidad: 1,
+    });
+    expect(compraPendienteAntes.estado).toBe(EstadoCompra.PENDIENTE);
     const cupoAntes = eventoService
       .obtenerEventoDetalle(5)
       .tiposEntrada.find((t) => t.id === 203).cupo;
@@ -132,15 +149,15 @@ describe("CompraService", () => {
       );
     }
 
-    // Al llegar la fecha del evento 5, la compra 6 PENDIENTE se cancela automáticamente y devuelve cupo
-    const fechaEvento5 = new Date(compra6Antes.evento.fecha);
+    // Al llegar la fecha del evento 5, la compra PENDIENTE se cancela automáticamente y devuelve cupo
+    const fechaEvento5 = new Date(compraPendienteAntes.evento.fecha);
     const comprasMateo = compraService.listarCompras({
       compradorId: 4,
       fechaActual: fechaEvento5,
     });
-    const compra6Despues = comprasMateo.find((c) => c.id === 6);
-    expect(compra6Despues.estado).toBe(EstadoCompra.CANCELADA);
-    expect(compra6Despues.cambiosEstado.at(-1).estado).toBe(EstadoCompra.CANCELADA);
+    const compraPendienteDespues = comprasMateo.find((c) => c.id === compraPendienteAntes.id);
+    expect(compraPendienteDespues.estado).toBe(EstadoCompra.CANCELADA);
+    expect(compraPendienteDespues.cambiosEstado.at(-1).estado).toBe(EstadoCompra.CANCELADA);
 
     const cupoDespues = eventoService
       .obtenerEventoDetalle(5)
@@ -171,16 +188,22 @@ describe("CompraService", () => {
       })
     ).toThrow(BusinessRuleError);
 
-    // Compra 6: PENDIENTE en evento 5 (tipoEntrada 203 con cupo 39)
+    // Compra PENDIENTE en evento 5 (tipoEntrada 203 pasa de cupo 40 a 39)
+    const compraPendiente = compraService.crearCompra({
+      compradorId: 4,
+      eventoId: 5,
+      tipoEntradaId: 203,
+      cantidad: 1,
+    });
     expect(() =>
-      compraService.actualizarEstado(6, {
+      compraService.actualizarEstado(compraPendiente.id, {
         estado: EstadoCompra.CANCELADA,
         usuarioId: 1,
       })
     ).toThrow(BusinessRuleError);
 
     expect(compraService.obtenerCompraPorId(5).estado).toBe(EstadoCompra.CONFIRMADA);
-    expect(compraService.obtenerCompraPorId(6).estado).toBe(EstadoCompra.PENDIENTE);
+    expect(compraService.obtenerCompraPorId(compraPendiente.id).estado).toBe(EstadoCompra.PENDIENTE);
 
     const cupo201 = eventoService
       .obtenerEventoDetalle(4)
@@ -269,7 +292,13 @@ describe("CompraService", () => {
     });
     expect(utilizadasFuturasSofia).toHaveLength(0);
 
-    const resAdjunto = compraService.agregarMensaje(6, {
+    const compraPendiente = compraService.crearCompra({
+      compradorId: 4,
+      eventoId: 5,
+      tipoEntradaId: 203,
+      cantidad: 1,
+    });
+    const resAdjunto = compraService.agregarMensaje(compraPendiente.id, {
       usuarioId: 4,
       adjunto: {
         nombre: "comprobante.png",

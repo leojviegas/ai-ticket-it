@@ -585,6 +585,28 @@ describe("API REST Integration (Express)", () => {
     expect(utilizadasFuturas.body).toHaveLength(0);
 
     // 2. Filtro estado en panel del organizador GET /api/eventos/:id/compras
+    const tokenMateo = tokenParaUsuario(4);
+    const compraPendienteRes = await request(
+      server,
+      "POST",
+      "/api/compras",
+      {
+        eventoId: 5,
+        tipoEntradaId: 203,
+        cantidad: 1,
+      },
+      tokenMateo
+    );
+    expect(compraPendienteRes.status).toBe(201);
+
+    await request(
+      server,
+      "POST",
+      `/api/compras/${compraPendienteRes.body.id}/mensajes`,
+      { mensaje: "Consulta por mi entrada." },
+      tokenMateo
+    );
+
     const panelPendientes = await request(
       server,
       "GET",
@@ -594,7 +616,7 @@ describe("API REST Integration (Express)", () => {
     );
     expect(panelPendientes.status).toBe(200);
     expect(panelPendientes.body.compras).toHaveLength(1);
-    expect(panelPendientes.body.compras[0].id).toBe(6);
+    expect(panelPendientes.body.compras[0].id).toBe(compraPendienteRes.body.id);
 
     const panelConfirmadas = await request(
       server,
@@ -605,7 +627,7 @@ describe("API REST Integration (Express)", () => {
     );
     expect(panelConfirmadas.status).toBe(200);
     expect(panelConfirmadas.body.compras).toHaveLength(0);
-    // La disponibilidad sigue considerando la compra 6 pendiente aunque se filtre por CONFIRMADA
+    // La disponibilidad sigue considerando la compra pendiente aunque se filtre por CONFIRMADA
     expect(panelConfirmadas.body.disponibilidadPorTipo[0].entradasReservadas).toBe(1);
 
     // 3. Crear evento con imagen PNG en Data URI base64
@@ -668,9 +690,15 @@ describe("API REST Integration (Express)", () => {
     expect(msgsConLucas.status).toBe(200);
     expect(msgsConLucas.body).toHaveLength(3);
 
-    const msgsCompra6 = await request(server, "GET", "/api/mensajes?compraId=6", null, tokenSofia);
-    expect(msgsCompra6.status).toBe(200);
-    expect(msgsCompra6.body).toHaveLength(1);
+    const msgsCompraPendiente = await request(
+      server,
+      "GET",
+      `/api/mensajes?compraId=${compraPendienteRes.body.id}`,
+      null,
+      tokenSofia
+    );
+    expect(msgsCompraPendiente.status).toBe(200);
+    expect(msgsCompraPendiente.body).toHaveLength(1);
 
     const msgsRemitenteLucas = await request(
       server,

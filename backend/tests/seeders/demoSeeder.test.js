@@ -22,10 +22,15 @@ describe("demoSeeder", () => {
     expect(eventos.filter((e) => !e.yaOcurrio())).toHaveLength(4);
 
     const compras = compraRepository.findAll();
-    expect(compras).toHaveLength(9);
+    expect(compras).toHaveLength(8);
 
     const estadosPresentes = new Set(compras.map((c) => c.estado));
-    for (const estado of Object.values(EstadoCompra)) {
+    for (const estado of [
+      EstadoCompra.CONFIRMADA,
+      EstadoCompra.UTILIZADA,
+      EstadoCompra.CANCELADA,
+      EstadoCompra.REEMBOLSADA,
+    ]) {
       expect(estadosPresentes.has(estado)).toBe(true);
     }
 
@@ -47,7 +52,7 @@ describe("demoSeeder", () => {
     expect(categoriaRepository.findAll()).toHaveLength(5);
     expect(usuarioRepository.findAll()).toHaveLength(4);
     expect(eventoRepository.findAll()).toHaveLength(7);
-    expect(compraRepository.findAll()).toHaveLength(9);
+    expect(compraRepository.findAll()).toHaveLength(8);
     expect(reseniaRepository.findAll()).toHaveLength(4);
     expect(generarId()).toBe(301);
   });

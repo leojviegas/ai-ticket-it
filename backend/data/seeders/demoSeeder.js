@@ -364,23 +364,6 @@ export function seedDemo() {
   );
   compraRepository.save(compraConfirmadaFutura);
 
-  // Compra 6: PENDIENTE en evento futuro (lista para que Sofía confirme o cancele)
-  entradaTechEarly.descontarCupo(1);
-  const compraPendiente = new Compra({
-    id: 6,
-    comprador: mateo,
-    evento: eventoFuturoTech,
-    tipoEntrada: entradaTechEarly,
-    cantidad: 1,
-    estado: EstadoCompra.PENDIENTE,
-  });
-  compraPendiente.agregarMensaje(
-    mateo,
-    "Buenas tardes, acabo de enviar la transferencia por el pase Early Bird.",
-    fechaRelativa(-1)
-  );
-  compraRepository.save(compraPendiente);
-
   // Compra 7: CANCELADA en evento futuro (lista para que el organizador la reembolse)
   const compraCancelada = new Compra({
     id: 7,

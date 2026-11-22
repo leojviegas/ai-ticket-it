@@ -1,5 +1,5 @@
 import { seedDemo } from "../../data/seeders/demoSeeder.js";
-import { eventoService } from "../../src/services/index.js";
+import { compraService, eventoService } from "../../src/services/index.js";
 import { EstadoCompra } from "../../src/domain/index.js";
 import { BusinessRuleError } from "../../src/services/errors/ServiceError.js";
 
@@ -139,7 +139,13 @@ describe("EventoService", () => {
   });
 
   test("separa entradasVendidas de entradasReservadas, valida organizadorId en panel y filtra reseñas anteriores", () => {
-    // Evento 5 (AI & Software Summit de Sofía 1) tiene compra 6 en PENDIENTE (cantidad 1)
+    // Evento 5 (AI & Software Summit de Sofía 1) recibe una compra en PENDIENTE (cantidad 1)
+    compraService.crearCompra({
+      compradorId: 4,
+      eventoId: 5,
+      tipoEntradaId: 203,
+      cantidad: 1,
+    });
     const panel = eventoService.obtenerComprasYDisponibilidad(5, { organizadorId: 1 });
     expect(panel.disponibilidadPorTipo[0].entradasVendidas).toBe(0);
     expect(panel.disponibilidadPorTipo[0].entradasReservadas).toBe(1);

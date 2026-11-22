@@ -3,12 +3,25 @@ import { mensajeService, compraService } from "../../src/services/index.js";
 import { ForbiddenError } from "../../src/services/errors/ServiceError.js";
 
 describe("MensajeService", () => {
+  let compraPendienteId;
+
   beforeEach(() => {
     seedDemo();
+    const compraPendiente = compraService.crearCompra({
+      compradorId: 4,
+      eventoId: 5,
+      tipoEntradaId: 203,
+      cantidad: 1,
+    });
+    compraService.agregarMensaje(compraPendiente.id, {
+      usuarioId: 4,
+      mensaje: "Buenas tardes, acabo de enviar la transferencia por el pase Early Bird.",
+    });
+    compraPendienteId = compraPendiente.id;
   });
 
   test("lista todos los mensajes del usuario en ambos roles (comprador y organizador) ordenados cronológicamente", () => {
-    // Sofía (1) participa en compra 5 (como compradora con Lucas, 2 mensajes) y compra 6 (como organizadora con Mateo, 1 mensaje)
+    // Sofía (1) participa en compra 5 (como compradora con Lucas, 2 mensajes) y en la compra de Mateo (como organizadora, 1 mensaje)
     const mensajesSofia = mensajeService.listarMensajes({ usuarioAutenticadoId: 1 });
     expect(mensajesSofia).toHaveLength(3);
     expect(mensajesSofia.some((m) => m.rolUsuario === "COMPRADOR")).toBe(true);
@@ -42,12 +55,12 @@ describe("MensajeService", () => {
   });
 
   test("filtra por compraId y rechaza con ForbiddenError si el usuario no participa o consulta terceros", () => {
-    const deCompra6 = mensajeService.listarMensajes({
+    const deCompraPendiente = mensajeService.listarMensajes({
       usuarioAutenticadoId: 1,
-      compraId: 6,
+      compraId: compraPendienteId,
     });
-    expect(deCompra6).toHaveLength(1);
-    expect(deCompra6[0].compraId).toBe(6);
+    expect(deCompraPendiente).toHaveLength(1);
+    expect(deCompraPendiente[0].compraId).toBe(compraPendienteId);
 
     // Valentina (3) no participa en compra 5
     expect(() =>
@@ -65,15 +78,15 @@ describe("MensajeService", () => {
   });
 
   test("listarConversaciones agrupa chats por compra ordenados por último mensaje y respeta incluirVacias", () => {
-    // Agregamos un mensaje nuevo en compra 6 para asegurarnos de que quede primera
-    compraService.agregarMensaje(6, {
+    // Agregamos un mensaje nuevo en la compra pendiente para asegurarnos de que quede primera
+    compraService.agregarMensaje(compraPendienteId, {
       usuarioId: 1,
       mensaje: "Recibido, ahora confirmo tu compra.",
     });
 
     const activasSofia = mensajeService.listarConversaciones(1);
     expect(activasSofia).toHaveLength(2);
-    expect(activasSofia[0].compraId).toBe(6);
+    expect(activasSofia[0].compraId).toBe(compraPendienteId);
     expect(activasSofia[0].rolUsuario).toBe("ORGANIZADOR");
     expect(activasSofia[0].contraparte.id).toBe(4);
     expect(activasSofia[0].cantidadMensajes).toBe(2);
